@@ -1,0 +1,18 @@
+from pydantic import BaseModel, Field
+from typing import Literal
+
+
+class RegisterRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50)
+    password: str = Field(..., min_length=8)
+    role: Literal["admin", "tenant"] = "tenant"
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(..., min_length=3)
+    password: str = Field(..., min_length=8)
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
