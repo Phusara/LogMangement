@@ -1,11 +1,20 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
-import { useAuthStore } from './auth'
+import { get } from '@/api/client'
+import { buildURL } from '@/config/api'
+import { logger } from '@/utils/logger'
+import { useDebounceFn } from '@/composables/useDebounce'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 const AUTO_REFRESH_MS = 10_000
 const SEARCH_DEBOUNCE_MS = 350
 
+/**
+ * Normalize alert data from API response
+ * @param {Object} item - Alert item
+ * @param {number} index - Item index
+ * @param {number} activePage - Current page number
+ * @returns {Object} Normalized alert
+ */
 const normalizeAlert = (item, index, activePage) => {
   const severity = (item.severity ?? item.log?.severity ?? item.level ?? 'info').toString().toLowerCase()
   const category = item.category ?? item.type ?? item.alert_type ?? item.log?.event_type ?? 'general'
@@ -48,6 +57,7 @@ const normalizeAlert = (item, index, activePage) => {
 }
 
 export const useAlertsStore = defineStore('alerts', () => {
+  // State
   const alerts = ref([])
   const totalAlerts = ref(0)
   const page = ref(1)
@@ -62,9 +72,9 @@ export const useAlertsStore = defineStore('alerts', () => {
   const currentUser = ref(null)
   const currentRole = ref(null)
 
-  let searchTimer = null
   let refreshTimer = null
 
+  // Computed
   const pageCount = computed(() => {
     if (!totalAlerts.value) return 1
     return Math.max(1, Math.ceil(totalAlerts.value / pageSize.value))
@@ -80,23 +90,13 @@ export const useAlertsStore = defineStore('alerts', () => {
     return Math.min(page.value * pageSize.value, totalAlerts.value)
   })
 
-  const authStore = useAuthStore()
+  const autoRefreshInterval = computed(() => AUTO_REFRESH_MS)
 
-  const buildHeaders = () => {
-    const headers = new Headers()
-    headers.set('Accept', 'application/json')
-    headers.set('Content-Type', 'application/json')
-    
-    if (authStore?.accessToken) {
-      const token = typeof authStore.accessToken === 'object' && authStore.accessToken.value 
-        ? authStore.accessToken.value 
-        : authStore.accessToken
-      headers.set('Authorization', `Bearer ${token}`)
-    }
-    
-    return headers
-  }
-
+  /**
+   * Fetch alerts from API
+   * @param {Object} options - Fetch options
+   * @param {boolean} options.silent - Silent mode (no loading state)
+   */
   const fetchAlerts = async ({ silent = false } = {}) => {
     if (isFetching.value) return
     isFetching.value = true
@@ -107,33 +107,23 @@ export const useAlertsStore = defineStore('alerts', () => {
     }
 
     try {
-      const params = new URLSearchParams()
-      params.set('page', String(page.value))
-      params.set('per_page', String(pageSize.value))
+      // Build query parameters
+      const params = {
+        page: String(page.value),
+        per_page: String(pageSize.value),
+      }
       
       if (searchTerm.value.trim()) {
-        params.set('search', searchTerm.value.trim())
+        params.search = searchTerm.value.trim()
       }
       
       if (sortKey.value) {
-        params.set('sort', sortKey.value)
-        params.set('order', sortDirection.value)
+        params.sort = sortKey.value
+        params.order = sortDirection.value
       }
 
-      const response = await fetch(`${API_BASE_URL}/alerts?${params.toString()}`, {
-        headers: buildHeaders(),
-      })
-
-      const contentType = response.headers.get('content-type') ?? ''
-      const isJson = contentType.includes('application/json')
-      const payload = isJson ? await response.json() : await response.text()
-
-      if (!response.ok) {
-        const message = typeof payload === 'string' 
-          ? payload 
-          : payload?.detail ?? payload?.message ?? `Failed to fetch alerts (${response.status})`
-        throw new Error(message)
-      }
+      // Make API request
+      const payload = await get(buildURL('/alerts', params))
 
       // Extract alerts array from response
       const rawItems = payload?.alerts ?? payload?.data ?? payload?.items ?? []
@@ -146,14 +136,18 @@ export const useAlertsStore = defineStore('alerts', () => {
       totalAlerts.value = payload?.total_alerts ?? payload?.total ?? rawItems.length
 
       // Normalize each alert
-      const normalized = rawItems.map((item, idx) => normalizeAlert(item, idx, page.value))
-
-      alerts.value = normalized
+      alerts.value = rawItems.map((item, idx) => normalizeAlert(item, idx, page.value))
+      
       lastFetchedAt.value = new Date()
-
+      
+      logger.debug('Alerts fetched', { 
+        count: alerts.value.length,
+        total: totalAlerts.value 
+      })
     } catch (err) {
-      console.error('Failed to fetch alerts:', err)
       error.value = err instanceof Error ? err.message : 'Unknown error occurred'
+      logger.error('Failed to fetch alerts', err)
+      
       alerts.value = []
       totalAlerts.value = 0
     } finally {
@@ -162,6 +156,10 @@ export const useAlertsStore = defineStore('alerts', () => {
     }
   }
 
+  /**
+   * Set current page
+   * @param {number} value - Page number
+   */
   const setPage = (value) => {
     const numeric = Number(value)
     const target = Number.isFinite(numeric) ? Math.max(1, Math.floor(numeric)) : 1
@@ -170,30 +168,46 @@ export const useAlertsStore = defineStore('alerts', () => {
     fetchAlerts()
   }
 
+  /**
+   * Navigate to next page
+   */
   const nextPage = () => {
     if (page.value >= pageCount.value) return
     page.value += 1
     fetchAlerts()
   }
 
+  /**
+   * Navigate to previous page
+   */
   const previousPage = () => {
     if (page.value <= 1) return
     page.value -= 1
     fetchAlerts()
   }
 
+  /**
+   * Navigate to first page
+   */
   const goToFirstPage = () => {
     if (page.value === 1) return
     page.value = 1
     fetchAlerts()
   }
 
+  /**
+   * Navigate to last page
+   */
   const goToLastPage = () => {
     if (page.value === pageCount.value) return
     page.value = pageCount.value
     fetchAlerts()
   }
 
+  /**
+   * Set page size
+   * @param {number} value - Items per page
+   */
   const setPageSize = (value) => {
     const numeric = Number(value)
     const size = Number.isFinite(numeric) ? numeric : 10
@@ -203,6 +217,10 @@ export const useAlertsStore = defineStore('alerts', () => {
     fetchAlerts()
   }
 
+  /**
+   * Set sort column and direction
+   * @param {string} key - Column key
+   */
   const setSort = (key) => {
     if (!key) return
     if (sortKey.value === key) {
@@ -214,15 +232,24 @@ export const useAlertsStore = defineStore('alerts', () => {
     fetchAlerts()
   }
 
+  // Debounced search handler
+  const debouncedSearch = useDebounceFn(() => {
+    page.value = 1
+    fetchAlerts()
+  }, SEARCH_DEBOUNCE_MS)
+
+  /**
+   * Set search term
+   * @param {string} value - Search query
+   */
   const setSearch = (value) => {
     searchTerm.value = value
-    if (searchTimer) clearTimeout(searchTimer)
-    searchTimer = setTimeout(() => {
-      page.value = 1
-      fetchAlerts()
-    }, SEARCH_DEBOUNCE_MS)
+    debouncedSearch()
   }
 
+  /**
+   * Start auto-refresh timer
+   */
   const startAutoRefresh = () => {
     if (refreshTimer) return
     refreshTimer = setInterval(() => {
@@ -230,18 +257,22 @@ export const useAlertsStore = defineStore('alerts', () => {
     }, AUTO_REFRESH_MS)
   }
 
+  /**
+   * Stop auto-refresh timer
+   */
   const stopAutoRefresh = () => {
     if (!refreshTimer) return
     clearInterval(refreshTimer)
     refreshTimer = null
   }
 
+  /**
+   * Manual refresh
+   */
   const manualRefresh = () => fetchAlerts()
 
-  const autoRefreshInterval = computed(() => AUTO_REFRESH_MS)
-
   return {
-    // state
+    // State
     alerts,
     totalAlerts,
     page,
@@ -249,16 +280,17 @@ export const useAlertsStore = defineStore('alerts', () => {
     searchTerm,
     sortKey,
     sortDirection,
-    pageCount,
-    pageStartIndex,
-    pageEndIndex,
     loading,
     error,
     lastFetchedAt,
-    autoRefreshInterval,
     currentUser,
     currentRole,
-    // actions
+    // Computed
+    pageCount,
+    pageStartIndex,
+    pageEndIndex,
+    autoRefreshInterval,
+    // Actions
     fetchAlerts,
     setPage,
     setPageSize,

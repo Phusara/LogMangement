@@ -161,9 +161,10 @@ onBeforeUnmount(() => {
             <button
               type="button"
               class="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-cyan-300 transition hover:bg-cyan-500/20"
+              aria-label="Refresh alerts now"
               @click="manualRefresh"
             >
-              <RefreshCw class="h-4 w-4" />
+              <RefreshCw class="h-4 w-4" aria-hidden="true" />
               Refresh now
             </button>
           </div>
@@ -173,11 +174,12 @@ onBeforeUnmount(() => {
       <div class="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60">
         <div class="flex flex-col gap-4 border-b border-slate-800 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
           <div class="relative flex w-full items-center lg:max-w-sm">
-            <Search class="pointer-events-none absolute left-4 h-4 w-4 text-slate-500" />
+            <Search class="pointer-events-none absolute left-4 h-4 w-4 text-slate-500" aria-hidden="true" />
             <input
               :value="searchTerm"
               type="search"
               placeholder="Search alerts..."
+              aria-label="Search alerts"
               class="w-full rounded-xl border border-slate-800 bg-slate-950/80 py-3 pl-11 pr-4 text-sm text-slate-200 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-400/40"
               @input="handleSearchInput"
             >
@@ -193,47 +195,67 @@ onBeforeUnmount(() => {
         </div>
 
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-800 text-sm text-slate-200">
+          <table class="min-w-full divide-y divide-slate-800 text-sm text-slate-200" role="table" aria-label="Alerts table">
             <thead class="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
-              <tr>
+              <tr role="row">
                 <th scope="col" class="px-6 py-4">
-                  <button type="button" class="flex items-center gap-2" @click="setSort('category')">
+                  <button 
+                    type="button" 
+                    class="flex items-center gap-2" 
+                    aria-label="Sort by category"
+                    @click="setSort('category')"
+                  >
                     Category
                   </button>
                 </th>
                 <th scope="col" class="px-6 py-4">
-                  <button type="button" class="flex items-center gap-2" @click="setSort('message')">
+                  <button 
+                    type="button" 
+                    class="flex items-center gap-2" 
+                    aria-label="Sort by message"
+                    @click="setSort('message')"
+                  >
                     Message
                   </button>
                 </th>
                 <th scope="col" class="px-6 py-4">
-                  <button type="button" class="flex items-center gap-2" @click="setSort('ip_address')">
+                  <button 
+                    type="button" 
+                    class="flex items-center gap-2" 
+                    aria-label="Sort by IP address"
+                    @click="setSort('ip_address')"
+                  >
                     IP Address
                   </button>
                 </th>
                 <th scope="col" class="px-6 py-4">Tenant</th>
                 <th scope="col" class="px-6 py-4">
-                  <button type="button" class="flex items-center gap-2" @click="setSort('created_at')">
+                  <button 
+                    type="button" 
+                    class="flex items-center gap-2" 
+                    aria-label="Sort by timestamp"
+                    @click="setSort('created_at')"
+                  >
                     Timestamp
                   </button>
                 </th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-800">
-              <tr v-if="loading" class="bg-slate-900/40">
+              <tr v-if="loading" class="bg-slate-900/40" role="row">
                 <td colspan="5" class="px-6 py-12">
                   <div class="flex items-center justify-center gap-3 text-sm text-slate-400">
-                    <Loader2 class="h-5 w-5 animate-spin text-cyan-300" />
-                    Loading alerts…
+                    <Loader2 class="h-5 w-5 animate-spin text-cyan-300" aria-hidden="true" />
+                    <span aria-live="polite">Loading alerts…</span>
                   </div>
                 </td>
               </tr>
-              <tr v-else-if="error" class="bg-rose-950/40">
-                <td colspan="5" class="px-6 py-12 text-center text-sm text-rose-300">
+              <tr v-else-if="error" class="bg-rose-950/40" role="row">
+                <td colspan="5" class="px-6 py-12 text-center text-sm text-rose-300" role="alert">
                   {{ error }}
                 </td>
               </tr>
-              <tr v-else-if="!alerts.length">
+              <tr v-else-if="!alerts.length" role="row">
                 <td colspan="5" class="px-6 py-12 text-center text-sm text-slate-500">
                   No alerts match the current filters.
                 </td>
@@ -243,6 +265,7 @@ onBeforeUnmount(() => {
                 v-else
                 :key="alert.id"
                 class="transition-colors hover:bg-slate-800/40"
+                role="row"
               >
                 <td class="px-6 py-4">
                   <span class="inline-flex items-center gap-2">
@@ -270,49 +293,55 @@ onBeforeUnmount(() => {
                 type="button"
                 class="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-slate-300 transition hover:border-cyan-500/60 hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="isFirstPage"
+                aria-label="Go to first page"
                 @click="goToFirstPage"
               >
-                <ChevronsLeft class="h-4 w-4" />
+                <ChevronsLeft class="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
                 class="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-slate-300 transition hover:border-cyan-500/60 hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="isFirstPage"
+                aria-label="Go to previous page"
                 @click="previousPage"
               >
-                <ChevronLeft class="h-4 w-4" />
+                <ChevronLeft class="h-4 w-4" aria-hidden="true" />
               </button>
               <input
                 :value="page"
                 type="number"
                 min="1"
                 :max="pageCount"
+                aria-label="Current page number"
                 class="w-16 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-center text-sm text-slate-200 focus:border-cyan-400 focus:outline-none"
                 @change="handlePageInput"
               >
-              <span class="px-1 text-xs text-slate-500">of {{ pageCount }}</span>
+              <span class="px-1 text-xs text-slate-500" aria-label="Total pages">of {{ pageCount }}</span>
               <button
                 type="button"
                 class="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-slate-300 transition hover:border-cyan-500/60 hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="isLastPage"
+                aria-label="Go to next page"
                 @click="nextPage"
               >
-                <ChevronRight class="h-4 w-4" />
+                <ChevronRight class="h-4 w-4" aria-hidden="true" />
               </button>
               <button
                 type="button"
                 class="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-slate-300 transition hover:border-cyan-500/60 hover:text-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
                 :disabled="isLastPage"
+                aria-label="Go to last page"
                 @click="goToLastPage"
               >
-                <ChevronsRight class="h-4 w-4" />
+                <ChevronsRight class="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
 
             <label class="flex items-center gap-2 text-xs text-slate-400">
-              <span>Rows per page</span>
+              <span id="page-size-label">Rows per page</span>
               <select
                 :value="pageSize"
+                aria-labelledby="page-size-label"
                 class="rounded-lg border border-slate-700 bg-slate-900 px-2 py-1 text-sm text-slate-200 focus:border-cyan-400 focus:outline-none"
                 @change="handlePageSizeChange"
               >

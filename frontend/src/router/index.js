@@ -1,10 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DashboardView from '../views/DashboardView.vue'
-import LogsView from '../views/LogsView.vue'
-import AlertsView from '../views/AlertsView.vue'
-import LoginView from '../views/LoginView.vue'
-import RegisterView from '../views/RegisterView.vue'
 import { useAuthStore } from '@/stores/auth'
+
+// Lazy load all views for better performance
+const DashboardView = () => import('../views/DashboardView.vue')
+const LogsView = () => import('../views/LogsView.vue')
+const AlertsView = () => import('../views/AlertsView.vue')
+const DataRetentionView = () => import('../views/DataRetentionView.vue')
+const LoginView = () => import('../views/LoginView.vue')
+const RegisterView = () => import('../views/RegisterView.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -39,9 +42,18 @@ const router = createRouter({
       component: AlertsView,
       meta: { requiresAuth: true },
     },
+    {
+      path: '/retention',
+      name: 'data-retention',
+      component: DataRetentionView,
+      meta: { requiresAuth: true },
+    },
   ],
 })
 
+/**
+ * Navigation guard for authentication
+ */
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   const isAuthenticated = authStore.isAuthenticated

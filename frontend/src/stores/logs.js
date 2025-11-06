@@ -1,13 +1,29 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import { useAuthStore } from './auth'
+import { get } from '@/api/client'
+import { buildURL } from '@/config/api'
+import { logger } from '@/utils/logger'
+import { useDebounceFn } from '@/composables/useDebounce'
+
+/**
+ * Normalize filter value
+ * @param {any} value - Filter value
+ * @returns {string}
+ */
+const normalizeFilterValue = (value) => {
+  if (!value) return 'all'
+  const trimmed = value.toString().trim()
+  return trimmed.toLowerCase() === 'all' ? 'all' : trimmed
+}
 
 export const useLogsStore = defineStore('logs', () => {
+  // State
   const logs = ref([])
   const tenant = ref('all')
   const sourceType = ref('all')
   const dateRange = ref(null)
   const loading = ref(false)
+  const error = ref(null)
 
   const summary = ref({
     totalEvents: 0,
@@ -15,31 +31,32 @@ export const useLogsStore = defineStore('logs', () => {
     uniqueIPs: 0,
     errors: 0,
   })
+  
   const timeline = ref([])
   const topIpItems = ref([])
   const topUserItems = ref([])
   const topSourceTypeItems = ref([])
   const tenantOptions = ref([])
-  const sourceTypeOptions = ref([])
-  const tenantOptionsCache = ref({})
-  const sourceTypeOptionsCache = ref({})
+  const sourceTypeOptions = ref([
+    'firewall', 
+    'network', 
+    'api', 
+    'crowdstrike', 
+    'aws', 
+    'm365', 
+    'ad'
+  ])
 
+  // Computed
   const filteredLogs = computed(() => logs.value)
-
   const topIPs = computed(() => topIpItems.value)
   const topUsers = computed(() => topUserItems.value)
   const topSourceTypes = computed(() => topSourceTypeItems.value)
   const timelineData = computed(() => timeline.value)
 
-  const errorCount = computed(
-    () => summary.value.errors ?? 0,
-  )
-  const uniqueUsers = computed(
-    () => summary.value.uniqueUsers ?? 0,
-  )
-  const uniqueIPs = computed(
-    () => summary.value.uniqueIPs ?? 0,
-  )
+  const errorCount = computed(() => summary.value.errors ?? 0)
+  const uniqueUsers = computed(() => summary.value.uniqueUsers ?? 0)
+  const uniqueIPs = computed(() => summary.value.uniqueIPs ?? 0)
 
   const errorTrend = computed(() =>
     (summary.value.totalEvents ?? 0)
@@ -53,64 +70,81 @@ export const useLogsStore = defineStore('logs', () => {
 
   const recentLogs = computed(() => logs.value.slice(0, 20))
 
-  const normalizeFilterValue = (value) => {
-    if (!value) return 'all'
-    const trimmed = value.toString().trim()
-    return trimmed.toLowerCase() === 'all' ? 'all' : trimmed
-  }
-
+  /**
+   * Set tenant filter
+   * @param {string} value - Tenant value
+   */
   const setTenant = (value) => {
     tenant.value = normalizeFilterValue(value)
   }
 
+  /**
+   * Set source type filter
+   * @param {string} value - Source type value
+   */
   const setSourceType = (value) => {
     sourceType.value = normalizeFilterValue(value)
   }
 
+  /**
+   * Set date range filter
+   * @param {Array|null} value - Date range [start, end]
+   */
   const setDateRange = (value) => {
     dateRange.value = value
   }
 
+  /**
+   * Reset all filters
+   */
   const resetFilters = () => {
     tenant.value = 'all'
     sourceType.value = 'all'
     dateRange.value = null
   }
 
-  const fetchLogs = async () => {
-    loading.value = true
-    const authStore = useAuthStore()
+  /**
+   * Map top items from API response
+   * @param {Array} list - List of items
+   * @returns {Array}
+   */
+  const mapTopItems = (list) =>
+    (list ?? [])
+      .filter(Boolean)
+      .map((item) => ({
+        name: item.label ?? item.name ?? 'Unknown',
+        count: item.count ?? 0,
+      }))
+
+  /**
+   * Fetch logs from API
+   * @param {Object} options - Fetch options
+   * @param {boolean} options.silent - Silent mode (no loading state)
+   */
+  const fetchLogs = async ({ silent = false } = {}) => {
+    if (!silent) {
+      loading.value = true
+      error.value = null
+    }
+    
     try {
-      const params = new URLSearchParams()
-      // Always send tenant parameter (default to 'all')
-      params.set('tenant', tenant.value || 'all')
-      if (sourceType.value && sourceType.value !== 'all') params.set('source', sourceType.value)
-      const [start, end] = dateRange.value ?? []
-      if (start) params.set('start', new Date(start).toISOString())
-      if (end) params.set('end', new Date(end).toISOString())
-
-      const endpoint = `${import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'}/dashboard`
-      const headers = new Headers()
-      headers.set('Accept', 'application/json')
-      headers.set('Content-Type', 'application/json')
-      
-      if (authStore?.accessToken) {
-        const token = authStore.accessToken
-        // Capitalize token type (backend expects "Bearer" not "bearer")
-        const scheme = authStore.tokenType 
-          ? authStore.tokenType.charAt(0).toUpperCase() + authStore.tokenType.slice(1).toLowerCase()
-          : 'Bearer'
-        headers.set('Authorization', `${scheme} ${token}`)
+      // Build query parameters
+      const params = {
+        tenant: tenant.value || 'all',
       }
+      
+      if (sourceType.value && sourceType.value !== 'all') {
+        params.source = sourceType.value
+      }
+      
+      const [start, end] = dateRange.value ?? []
+      if (start) params.start = new Date(start).toISOString()
+      if (end) params.end = new Date(end).toISOString()
 
-      const response = await fetch(`${endpoint}?${params.toString()}`, {
-        headers,
-      })
-      if (!response.ok) throw new Error(`Failed to load logs: ${response.status}`)
-      const payload = await response.json()
+      // Make API request
+      const payload = await get(buildURL('/dashboard', params))
 
-      console.log('DEBUG: Full API payload:', payload)
-
+      // Process summary
       summary.value = {
         totalEvents: payload.summary?.total_events ?? 0,
         uniqueUsers: payload.summary?.unique_users ?? 0,
@@ -118,8 +152,9 @@ export const useLogsStore = defineStore('logs', () => {
         errors: payload.summary?.errors ?? 0,
       }
 
-      console.log('DEBUG: Processed summary:', summary.value)
+      logger.debug('Dashboard summary loaded', summary.value)
 
+      // Process timeline
       timeline.value = (payload.timeline ?? []).map((entry) => {
         const bucketDate = entry.bucket ? new Date(entry.bucket) : null
         const label = bucketDate
@@ -131,25 +166,12 @@ export const useLogsStore = defineStore('logs', () => {
         }
       })
 
-      console.log('DEBUG: Processed timeline:', timeline.value)
-
-      const mapTopItems = (list) =>
-        (list ?? [])
-          .filter(Boolean)
-          .map((item) => ({
-            name: item.label ?? item.name ?? 'Unknown',
-            count: item.count ?? 0,
-          }))
-
+      // Process top items
       topIpItems.value = mapTopItems(payload.top?.ip_addresses)
-      console.log('DEBUG: Top IP items:', topIpItems.value)
-
       topUserItems.value = mapTopItems(payload.top?.users)
-      console.log('DEBUG: Top user items:', topUserItems.value)
-
       topSourceTypeItems.value = mapTopItems(payload.top?.event_types)
-      console.log('DEBUG: Top source type items:', topSourceTypeItems.value)
 
+      // Process logs
       logs.value = (payload.logs ?? []).map((item, idx) => {
         const destinationIp =
           item.dst_ip ??
@@ -184,52 +206,68 @@ export const useLogsStore = defineStore('logs', () => {
         }
       })
 
-      console.log('DEBUG: Processed logs (count):', logs.value.length)
-      console.log('DEBUG: First log:', logs.value[0])
-      console.log('DEBUG: Last log:', logs.value[logs.value.length - 1])
-
       // Extract tenant options from backend
       const backendTenants = payload.tenants ?? []
       tenantOptions.value = backendTenants.length > 0 ? backendTenants : []
       
-      // Fixed source type options
-      sourceTypeOptions.value = ['firewall', 'network', 'api', 'crowdstrike', 'aws', 'm365', 'ad']
+      logger.debug('Logs fetched', { 
+        count: logs.value.length,
+        tenantOptions: tenantOptions.value.length 
+      })
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to load logs'
+      logger.error('Error fetching logs', err)
       
-      console.log('DEBUG: Tenant options:', tenantOptions.value)
-      console.log('DEBUG: Source type options:', sourceTypeOptions.value)
-    } catch (error) {
-      console.error('Error fetching logs', error)
+      // Reset data on error
+      logs.value = []
+      summary.value = { totalEvents: 0, uniqueUsers: 0, uniqueIPs: 0, errors: 0 }
+      timeline.value = []
+      topIpItems.value = []
+      topUserItems.value = []
+      topSourceTypeItems.value = []
     } finally {
-      loading.value = false
+      if (!silent) {
+        loading.value = false
+      }
     }
   }
 
-  watch([tenant, sourceType, dateRange], fetchLogs, { immediate: true })
+  // Debounced fetch with 300ms delay
+  const debouncedFetch = useDebounceFn(fetchLogs, 300)
+
+  // Watch filters and fetch on change
+  watch([tenant, sourceType, dateRange], () => {
+    debouncedFetch()
+  }, { immediate: true })
 
   return {
+    // State
     logs,
     tenant,
     sourceType,
     dateRange,
+    loading,
+    error,
     summary,
+    tenantOptions,
+    sourceTypeOptions,
+    // Computed
     filteredLogs,
     topIPs,
     topUsers,
     topSourceTypes,
     timelineData,
-    tenantOptions,
-    sourceTypeOptions,
     errorCount,
     uniqueUsers,
     uniqueIPs,
     errorTrend,
     userTrend,
     recentLogs,
+    // Actions
     setTenant,
     setSourceType,
     setDateRange,
     resetFilters,
-    loading,
     fetchLogs,
   }
 })

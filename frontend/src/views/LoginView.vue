@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
+import { validators, validate } from '@/utils/validators'
 
 const router = useRouter()
 const route = useRoute()
@@ -14,13 +15,52 @@ const form = reactive({
   password: '',
 })
 
+const errors = reactive({
+  username: null,
+  password: null,
+})
+
 if (typeof route.query.username === 'string') {
   form.username = route.query.username
 }
 
 const errorMessage = ref(null)
 
-const canSubmit = computed(() => Boolean(form.username?.trim()) && Boolean(form.password))
+/**
+ * Validate username field
+ */
+const validateUsername = () => {
+  errors.username = validate(form.username, [
+    validators.required,
+    validators.minLength(3),
+  ])
+}
+
+/**
+ * Validate password field
+ */
+const validatePassword = () => {
+  errors.password = validate(form.password, [
+    validators.required,
+    validators.minLength(6),
+  ])
+}
+
+/**
+ * Validate entire form
+ * @returns {boolean} True if form is valid
+ */
+const validateForm = () => {
+  validateUsername()
+  validatePassword()
+  return !errors.username && !errors.password
+}
+
+const canSubmit = computed(() => 
+  Boolean(form.username?.trim()) && 
+  Boolean(form.password) &&
+  !loginPending.value
+)
 
 const redirectToDashboard = () => {
   const redirectParam = route.query.redirect
@@ -46,7 +86,12 @@ watch(
 
 const submit = async () => {
   if (!canSubmit.value || loginPending.value) return
+  
+  // Validate form
+  if (!validateForm()) return
+  
   errorMessage.value = null
+  
   try {
     await authStore.login({
       username: form.username.trim(),
@@ -75,7 +120,9 @@ const handleKey = (event) => {
 
         <form class="space-y-6" @submit.prevent="submit">
           <div class="space-y-2">
-            <label for="username" class="text-sm font-medium text-slate-300">Username</label>
+            <label for="username" class="text-sm font-medium text-slate-300">
+              Username <span class="text-red-400">*</span>
+            </label>
             <input
               id="username"
               v-model="form.username"
@@ -83,14 +130,22 @@ const handleKey = (event) => {
               name="username"
               autocomplete="username"
               required
+              aria-label="Username"
+              aria-required="true"
+              :aria-invalid="!!errors.username"
               class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-base text-slate-100 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+              :class="{ 'border-red-500': errors.username }"
               placeholder="demo_user"
+              @blur="validateUsername"
             >
+            <p v-if="errors.username" class="text-sm text-red-400">{{ errors.username }}</p>
           </div>
 
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label for="password" class="text-sm font-medium text-slate-300">Password</label>
+              <label for="password" class="text-sm font-medium text-slate-300">
+                Password <span class="text-red-400">*</span>
+              </label>
             </div>
             <input
               id="password"
@@ -99,13 +154,19 @@ const handleKey = (event) => {
               name="password"
               autocomplete="current-password"
               required
+              aria-label="Password"
+              aria-required="true"
+              :aria-invalid="!!errors.password"
               class="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-base text-slate-100 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+              :class="{ 'border-red-500': errors.password }"
               placeholder="••••••••"
+              @blur="validatePassword"
               @keydown="handleKey"
             >
+            <p v-if="errors.password" class="text-sm text-red-400">{{ errors.password }}</p>
           </div>
 
-          <p v-if="errorMessage" class="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          <p v-if="errorMessage" class="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm text-red-300" role="alert">
             {{ errorMessage }}
           </p>
 
@@ -113,6 +174,7 @@ const handleKey = (event) => {
             type="submit"
             class="flex w-full items-center justify-center rounded-xl bg-cyan-500 px-4 py-3 text-sm font-semibold uppercase tracking-wide text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
             :disabled="!canSubmit || loginPending"
+            :aria-busy="loginPending"
           >
             <span v-if="!loginPending">Sign In</span>
             <span v-else>Signing in…</span>

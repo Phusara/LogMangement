@@ -72,3 +72,4 @@ class Alert(Base):
     user_id = Column(Integer, nullable=False)
     log_id = Column(Integer, nullable=False)
     alert = Column(Text)
+    timestamp = Column(DateTime)

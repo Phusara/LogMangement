@@ -17,7 +17,7 @@ const navItems = computed(() => [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Logs', icon: ScrollText, path: '/logs' },
   { label: 'Alerts', icon: LineChart, path: '/alerts' },
-  { label: 'Data retention', icon: Settings, path: null },
+  { label: 'Data retention', icon: Settings, path: '/retention' },
 ])
 
 const navigate = (item) => {

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch, shallowRef } from 'vue'
 import { Line } from 'vue-chartjs'
 import {
   Chart as ChartJS,
@@ -22,22 +22,39 @@ const props = defineProps({
   },
 })
 
-const chartData = computed(() => ({
-  labels: props.data.map((item) => item.time),
-  datasets: [
-    {
-      label: 'Events',
-      data: props.data.map((item) => item.count),
-      tension: 0.35,
-      borderColor: '#22d3ee',
-      backgroundColor: 'rgba(34, 211, 238, 0.18)',
-      pointBackgroundColor: '#22d3ee',
-      pointBorderColor: '#020617',
-      borderWidth: 2,
-      fill: true,
-    },
-  ],
-}))
+// Use shallowRef for better performance with large datasets
+const chartData = shallowRef({
+  labels: [],
+  datasets: [],
+})
+
+// Memoized chart data computation
+const updateChartData = () => {
+  if (!props.data?.length) {
+    chartData.value = { labels: [], datasets: [] }
+    return
+  }
+
+  chartData.value = {
+    labels: props.data.map((item) => item.time),
+    datasets: [
+      {
+        label: 'Events',
+        data: props.data.map((item) => item.count),
+        tension: 0.35,
+        borderColor: '#22d3ee',
+        backgroundColor: 'rgba(34, 211, 238, 0.18)',
+        pointBackgroundColor: '#22d3ee',
+        pointBorderColor: '#020617',
+        borderWidth: 2,
+        fill: true,
+      },
+    ],
+  }
+}
+
+// Watch for data changes and update chart
+watch(() => props.data, updateChartData, { immediate: true })
 
 const chartOptions = {
   responsive: true,
