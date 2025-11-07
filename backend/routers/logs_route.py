@@ -43,7 +43,7 @@ async def create_router_log(request: Request):
         if target_port:
             async with httpx.AsyncClient() as client:
                 response = await client.post(
-                    f"http://localhost:{target_port}", 
+                    f"http://vector:{target_port}", 
                     json=source_json
                 )
                 print(f"Sent {source} log to port {target_port}")
