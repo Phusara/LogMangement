@@ -1,4 +1,5 @@
 ﻿<script setup>
+import { onBeforeUnmount, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Activity, Users, Server, AlertTriangle } from 'lucide-vue-next'
 
@@ -30,7 +31,22 @@ const {
   userTrend,
 } = storeToRefs(logsStore)
 
-const { setTenant, setSourceType, setDateRange, resetFilters } = logsStore
+const {
+  setTenant,
+  setSourceType,
+  setDateRange,
+  resetFilters,
+  startAutoRefresh,
+  stopAutoRefresh,
+} = logsStore
+
+onMounted(() => {
+  startAutoRefresh()
+})
+
+onBeforeUnmount(() => {
+  stopAutoRefresh()
+})
 </script>
 
 <template>
@@ -46,7 +62,7 @@ const { setTenant, setSourceType, setDateRange, resetFilters } = logsStore
         title="Total Events"
         :value="summary.totalEvents"
         :icon="Activity"
-        trend="+12.5% from last hour"
+        trend=""
       />
       <StatsCard
         title="Unique Users"

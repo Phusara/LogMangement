@@ -1,17 +1,20 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { Database, Clock, Trash2, BellRing } from 'lucide-vue-next'
+import { Database, Clock, Trash2, BellRing, RefreshCw } from 'lucide-vue-next'
 
 import AppShell from '@/components/layout/AppShell.vue'
 import StatsCard from '@/components/dashboard/StatsCard.vue'
 import { useLogsStore } from '@/stores/logs'
 import { useAlertsStore } from '@/stores/alerts'
 import { useRetentionStore, LOG_RETENTION_DAYS, ALERT_RETENTION_DAYS } from '@/stores/retention'
+import { useAuthStore } from '@/stores/auth'
 
 const logsStore = useLogsStore()
 const alertsStore = useAlertsStore()
 const retentionStore = useRetentionStore()
+const authStore = useAuthStore()
+const { manualRefresh: refreshStorage } = retentionStore
 
 const { summary, recentLogs } = storeToRefs(logsStore)
 const { totalAlerts } = storeToRefs(alertsStore)
@@ -24,7 +27,10 @@ const {
   cleanupMessage,
   cleanupError,
   hasStorageData,
+  lastFetchedAt,
+  autoRefreshInterval,
 } = storeToRefs(retentionStore)
+const { user } = storeToRefs(authStore)
 
 const cleanupDays = ref(LOG_RETENTION_DAYS)
 
@@ -33,6 +39,16 @@ const totalLogCount = computed(() => summary.value.totalEvents ?? 0)
 const oldLogCount = computed(() => Math.max(totalLogCount.value - recentLogCount.value, 0))
 const mergedCleanupMessage = computed(() => cleanupError.value ?? cleanupMessage.value)
 const isCleanupError = computed(() => Boolean(cleanupError.value))
+const canManageCleanup = computed(() => (user.value?.role ?? '').toString().toLowerCase() === 'admin')
+const autoRefreshSeconds = computed(() => Math.round(autoRefreshInterval.value / 1000))
+const storageLastUpdated = computed(() => {
+  if (!lastFetchedAt.value) return 'Never'
+  return lastFetchedAt.value.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+})
 
 const handleCleanup = async () => {
   const parsed = Number.parseInt(cleanupDays.value, 10)
@@ -41,15 +57,24 @@ const handleCleanup = async () => {
 }
 
 onMounted(() => {
-  retentionStore.fetchStorage()
+  retentionStore.fetchStorage().catch(() => {})
+  retentionStore.startAutoRefresh()
 
+  logsStore.startAutoRefresh()
   if (!totalLogCount.value) {
     logsStore.fetchLogs({ silent: true }).catch(() => {})
   }
 
+  alertsStore.startAutoRefresh()
   if (!alertsStore.alerts.length && !totalAlerts.value) {
     alertsStore.fetchAlerts({ silent: true }).catch(() => {})
   }
+})
+
+onBeforeUnmount(() => {
+  logsStore.stopAutoRefresh()
+  alertsStore.stopAutoRefresh()
+  retentionStore.stopAutoRefresh()
 })
 </script>
 
@@ -112,7 +137,10 @@ onMounted(() => {
     <section class="space-y-6 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
       <header>
         <h2 class="text-lg font-semibold text-slate-100">Data Footprint</h2>
-        <p class="text-sm text-slate-400">Track how much storage logs and alerts currently consume.</p>
+        <p class="text-sm text-slate-400">
+          Track how much storage logs and alerts currently consume. Auto-refreshes every {{ autoRefreshSeconds }}s
+          (last updated {{ storageLastUpdated }}).
+        </p>
       </header>
 
       <div v-if="storageError" class="rounded-xl border border-rose-500/40 bg-rose-500/10 p-4 text-sm text-rose-100">
@@ -128,6 +156,18 @@ onMounted(() => {
       </div>
 
       <div v-else class="overflow-hidden rounded-xl border border-slate-800">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 bg-slate-900/80 px-6 py-4 text-xs text-slate-400">
+          <span>Last updated {{ storageLastUpdated }} · Auto-refresh {{ autoRefreshSeconds }}s</span>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+            :disabled="storageLoading"
+            @click="refreshStorage()"
+          >
+            <RefreshCw class="h-3.5 w-3.5" />
+            Refresh
+          </button>
+        </div>
         <table class="min-w-full divide-y divide-slate-800 text-sm">
           <thead class="bg-slate-900/80 text-xs uppercase tracking-wide text-slate-400">
             <tr>
@@ -150,7 +190,10 @@ onMounted(() => {
     </section>
 
     <section class="grid gap-6 xl:grid-cols-[2fr_1fr]">
-      <div class="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
+      <div
+        v-if="canManageCleanup"
+        class="space-y-5 rounded-2xl border border-slate-800 bg-slate-900/60 p-6"
+      >
         <header>
           <h2 class="text-lg font-semibold text-slate-100">Manual Cleanup</h2>
           <p class="text-sm text-slate-400">
@@ -205,6 +248,17 @@ onMounted(() => {
         >
           {{ mergedCleanupMessage }}
         </div>
+      </div>
+
+      <div
+        v-else
+        class="space-y-3 rounded-2xl border border-slate-800 bg-slate-900/60 p-6 text-sm text-slate-300"
+      >
+        <h2 class="text-lg font-semibold text-slate-100">Manual Cleanup</h2>
+        <p>
+          Manual cleanup tools are available to administrator accounts only. Contact an administrator if you need to
+          expedite log or alert retention policies.
+        </p>
       </div>
 
       <aside class="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-6 text-sm text-amber-100">
