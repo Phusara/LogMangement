@@ -3,19 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from routers import auth_route, logs_route, dashboard_route, alerts_route, retention_route
 from apscheduler.schedulers.background import BackgroundScheduler
-from database import SessionLocal
+from database import SessionLocal, Base, engine
 from services.retention_service import delete_old_data
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
+Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Log Management API", version="1.0.0")
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],

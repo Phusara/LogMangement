@@ -12,7 +12,7 @@ class User(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     username = Column(Text, nullable=False)
-    password = Column(String(20), nullable=False)
+    password = Column(String(100), nullable=False)
     role = Column(SQLEnum(UserRole, name='user_role'), nullable=False, default=UserRole.tenant)
     created_at = Column(DateTime)
 

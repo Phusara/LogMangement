@@ -1,0 +1,53 @@
+version: "3.8"
+
+services:
+  vector:
+    image: timberio/vector:0.51.0-debian
+    volumes:
+      - ./ingest/config/vector.yaml:/etc/vector/vector.yaml
+    ports:
+      - "514:514/udp"    # route_syslog
+      - "515:515/udp"    # firewall_syslog
+      - "9000:9000"      # json_syslog
+      - "9001:9001"      # M365_syslog
+      - "9002:9002"      # Crowdstrike
+      - "9003:9003"      # AWS_CT
+      - "9004:9004" 
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    restart: on-failure
+    env_file:
+      - ./backend/.env
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    env_file:
+      - ./frontend/.env
+    depends_on:    # <-- ADD THIS SECTION
+      - backend
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysql
+      POSTGRES_DB: logs_user
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
