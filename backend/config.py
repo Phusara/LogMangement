@@ -2,13 +2,12 @@ from pydantic_settings import BaseSettings
 from typing import List
 import json
 
-
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql://postgres:mysql@localhost:5432/logs_user"
-    SECRET_KEY: str = "your-secret-key"
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
-    CORS_ORIGINS: str = '["http://localhost:5173", "http://localhost:3000", "http://localhost:5174"]'
+    DATABASE_URL: str
+    SECRET_KEY: str
+    ALGORITHM: str
+    ACCESS_TOKEN_EXPIRE_MINUTES: int
+    CORS_ORIGINS: str  # still a JSON string
 
     class Config:
         env_file = ".env"
@@ -16,6 +15,5 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> List[str]:
         return json.loads(self.CORS_ORIGINS)
-
 
 settings = Settings()

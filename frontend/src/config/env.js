@@ -10,14 +10,10 @@ const requiredEnvVars = ['VITE_API_BASE_URL']
  * @throws {Error} If a required environment variable is missing
  */
 export function validateEnv() {
-  const missing = requiredEnvVars.filter(key => !import.meta.env[key])
-  
+  const missing = requiredEnvVars.filter(key => !import.meta.env[key]);
+
   if (missing.length > 0) {
-    console.error(`Missing required environment variables: ${missing.join(', ')}`)
-    // Don't throw in production, just log warning
-    if (import.meta.env.DEV) {
-      console.warn('Development mode: Using default values for missing env vars')
-    }
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 }
 
@@ -38,7 +34,7 @@ validateEnv()
  * Environment configuration object
  */
 export const env = {
-  apiBaseUrl: getEnv('VITE_API_BASE_URL', 'http://localhost:8000'),
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
   isDev: import.meta.env.DEV,
   isProd: import.meta.env.PROD,
   mode: import.meta.env.MODE,
