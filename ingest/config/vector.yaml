@@ -18,31 +18,31 @@
 sources:
   route_syslog:
     type: syslog
-    address: "127.0.0.1:514" 
+    address: "0.0.0.0:514" 
     mode: "udp"
   firewall_syslog:
     type: "syslog"
-    address: "127.0.0.1:515" 
+    address: "0.0.0.0:515" 
     mode: "udp"
   json_syslog:
     type: "http_server"
-    address: "127.0.0.1:9000"
+    address: "0.0.0.0:9000"
     encoding: "json"
   M365_syslog:
     type: "http_server"
-    address: "127.0.0.1:9001"
+    address: "0.0.0.0:9001"
     encoding: "json"
   Crowdstrike:
     type: "http_server"
-    address: "127.0.0.1:9002"
+    address: "0.0.0.0:9002"
     encoding: "json"
   AWS_CT:
     type: "http_server"
-    address: "127.0.0.1:9003"
+    address: "0.0.0.0:9003"
     encoding: "json"
   MCAD:
     type: "http_server"
-    address: "127.0.0.1:9004"
+    address: "0.0.0.0:9004"
     encoding: "json"
 
 
@@ -233,7 +233,7 @@ sinks:
   fastapi_sink:
     type: "http"
     inputs: ["remap_syslog", "remap_firewall", "parse_json_message","parse_M365","parse_Crowdstrike","parse_AWS_CT","parse_MCAD"]
-    uri: "http://localhost:8000/ingest"
+    uri: "http://backend:8000/ingest"
     method: "post"
     encoding:
       codec: "json"
