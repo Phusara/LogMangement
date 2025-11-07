@@ -1,0 +1,245 @@
+#                                    __   __  __
+#                                    \ \ / / / /
+#                                     \ V / / /
+#                                      \_/  \/
+#
+#                                    V E C T O R
+#                                   Configuration
+#
+# ------------------------------------------------------------------------------
+# Website: https://vector.dev
+# Docs: https://vector.dev/docs
+# Chat: https://chat.vector.dev
+# ------------------------------------------------------------------------------
+
+# Change this to use a non-default directory for Vector data storage:
+# data_dir: "/var/lib/vector"
+
+sources:
+  route_syslog:
+    type: syslog
+    address: "127.0.0.1:514" 
+    mode: "udp"
+  firewall_syslog:
+    type: "syslog"
+    address: "127.0.0.1:515" 
+    mode: "udp"
+  json_syslog:
+    type: "http_server"
+    address: "127.0.0.1:9000"
+    encoding: "json"
+  M365_syslog:
+    type: "http_server"
+    address: "127.0.0.1:9001"
+    encoding: "json"
+  Crowdstrike:
+    type: "http_server"
+    address: "127.0.0.1:9002"
+    encoding: "json"
+  AWS_CT:
+    type: "http_server"
+    address: "127.0.0.1:9003"
+    encoding: "json"
+  MCAD:
+    type: "http_server"
+    address: "127.0.0.1:9004"
+    encoding: "json"
+
+
+   
+  
+transforms:
+  remap_syslog:
+    inputs: ["route_syslog"]
+    type: remap
+    source: |
+      structured = parse_key_value!(.message)
+      . = merge(., structured)
+      .event_type = .event
+      .@timestamp = .timestamp
+      .source = "network"
+      # Map severity levels to numeric values
+      severity_value = to_string(.severity) ?? "unknown"
+      .severity = get({
+      "debug": 1,
+      "info": 3,
+      "notice": 4,
+      "warning": 5,
+      "error": 7,
+      "critical": 8,
+      "alert": 9,
+      "emergency": 10
+      }, [severity_value]) ?? 0
+      del(.event)
+      del(.timestamp)
+  remap_firewall:
+    inputs: ["firewall_syslog"]
+    type: remap
+    source: |
+       structured = parse_key_value!(.message)
+        . = merge(., structured)
+    
+        # Clean up appname (extract vendor)
+        if exists(.appname) {
+          appname_parts = parse_key_value!(.appname)
+          .vendor = appname_parts.vendor
+          del(.appname)
+        }
+              severity_value = to_string(.severity) ?? "unknown"
+        .severity = get({
+          "debug": 1,
+          "info": 3,
+          "notice": 4,
+          "warning": 5,
+          "error": 7,
+          "critical": 8,
+          "alert": 9,
+          "emergency": 10
+        }, [severity_value]) ?? 0
+        # Normalize field names for consistency
+        .source_ip = del(.src)
+        .dest_ip = del(.dst)
+        .source_port = del(.spt)
+        .dest_port = del(.dpt)
+        .protocol = del(.proto)
+        .source = "firewall"
+        # Rename fields to match your schema
+        .event_type = del(.action)
+        .@timestamp = del(.timestamp)
+        
+        # # Add metadata
+        # .log_source = "firewall_syslog"
+        # .received_at = now()
+        
+        # Clean up redundant fields
+        del(.message)  # Already parsed, no longer needed
+        del(.source_type)
+  parse_json_message:
+    inputs: ["json_syslog"]
+    type: remap
+    source: |
+        # Parse the nested JSON
+        parsed_log = parse_json!(.log)
+      
+        # Flatten to root level
+        . = merge!(., parsed_log)
+        # Clean up metadata fields
+        del(.log)
+        del(.path)
+        del(.source_type)
+        
+        # Add normalized fields
+        .received_at = .timestamp
+        del(.timestamp)
+        
+        # Add common schema fields for all logs
+        .log_source = "http_api"
+  parse_M365:
+    inputs: ["M365_syslog"]
+    type: remap
+    source: |
+    
+        .@timestamp = .timestamp
+        del(.timestamp)
+        del(.log)
+        del(.path)
+        del(.source_type)
+  parse_Crowdstrike:
+    inputs: ["Crowdstrike"]
+    type: remap
+    source: |
+   
+        .@timestamp = .timestamp
+        del(.timestamp)
+        del(.log)
+        del(.path)
+        del(.source_type)
+  parse_AWS_CT:
+    inputs: ["AWS_CT"]
+    type: remap
+    source: |
+        .account_id = .cloud.account_id
+        .region = .cloud.region
+        .service = .cloud.service
+        # Clean up fields
+        del(.timestamp)
+        del(.path)
+        del(.source_type)
+        del(.cloud)
+  parse_MCAD:
+    inputs: ["MCAD"]
+    type: remap
+    source: |
+        del(.timestamp)
+        del(.log)
+        del(.path)
+        del(.source_type)
+
+ 
+       
+        
+
+
+sinks:
+  my_console_sink:
+    inputs: ["remap_syslog"]
+    type: "console"
+    encoding:
+      codec: "json"
+      json:
+        pretty: true
+  firewall_console_sink:
+    inputs: ["remap_firewall"]
+    type: "console"
+    encoding:
+      codec: "json"
+      json:
+        pretty: true
+  json_console_sink:
+    inputs: ["parse_json_message"]
+    type: "console"
+    encoding:
+      codec: "json"
+      json:
+        pretty: true
+  m365_console_sink:
+    inputs: ["parse_M365"]  
+    type: "console"
+    encoding:
+      codec: "json"
+      json:
+        pretty: true
+  Crowdstrike_console_sink:
+    inputs: ["parse_Crowdstrike"]  
+    type: "console"
+    encoding:
+      codec: "json"
+      json:
+        pretty: true
+  AWS_CT_console_sink:
+    inputs: ["parse_AWS_CT"]  
+    type: "console"
+    encoding:
+      codec: "json"
+      json:
+        pretty: true
+  MCAD_console_sink:
+    inputs: ["parse_MCAD"]
+    type: "console"
+    encoding:
+      codec: "json"
+      json:
+        pretty: true
+  fastapi_sink:
+    type: "http"
+    inputs: ["remap_syslog", "remap_firewall", "parse_json_message","parse_M365","parse_Crowdstrike","parse_AWS_CT","parse_MCAD"]
+    uri: "http://localhost:8000/ingest"
+    method: "post"
+    encoding:
+      codec: "json"
+    batch:
+      max_events: 10      # Batch up to 10 events
+      timeout_secs: 2     # Or send after 2 seconds (whichever comes first)
+
+
+
