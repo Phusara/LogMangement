@@ -65,4 +65,4 @@ def login_user_service(data: LoginRequest, request: Request, db: Session):
     }
 
     access_token = create_access_token(token_data)
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"access_token": access_token, "token_type": "bearer", "role": user.role}
