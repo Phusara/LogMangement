@@ -4,6 +4,7 @@ from collections import defaultdict, deque
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 import entity.models as models
+from utils.datetime_helpers import format_datetime_utc
 
 
 # Alert failed login section
@@ -106,13 +107,17 @@ def get_alerts_service(db: Session, current_user: dict):
     result = []
     for alert in alerts:
         log = db.query(models.Log).filter(models.Log.id == alert.log_id).first()
+        # Use log timestamp as occurred_at (or alert timestamp if log doesn't exist)
+        occurred_at = format_datetime_utc(log.timestamp if log else alert.timestamp)
         result.append({
             "alert_id": alert.alert_id,
             "user_id": alert.user_id,
             "alert": alert.alert,
+            "occurred_at": occurred_at,  # Add explicit occurred_at for frontend
+            "timestamp": occurred_at,  # Also include as timestamp for compatibility
             "log": {
                 "id": log.id,
-                "timestamp": log.timestamp.isoformat() if log.timestamp else None,
+                "timestamp": format_datetime_utc(log.timestamp),
                 "tenant": log.tenant,
                 "source": log.source,
                 "event_type": log.event_type,

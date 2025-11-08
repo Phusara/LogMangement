@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from collections import Counter, defaultdict
 from fastapi import HTTPException
 import entity.models as models
+from utils.datetime_helpers import format_datetime_utc
 
 
 def get_dashboard_data(
@@ -60,8 +61,10 @@ def get_dashboard_data(
     timeline = defaultdict(int)
     for log in logs:
         if log.timestamp:
-            bucket = log.timestamp.replace(minute=0, second=0, microsecond=0).isoformat()
-            timeline[bucket] += 1
+            bucket_dt = log.timestamp.replace(minute=0, second=0, microsecond=0)
+            bucket = format_datetime_utc(bucket_dt)
+            if bucket:
+                timeline[bucket] += 1
 
     def serialize_counter(counter: Counter, limit: int = 5):
         return [{"label": label, "count": count} for label, count in counter.most_common(limit)]
@@ -69,7 +72,7 @@ def get_dashboard_data(
     def serialize_log(log):
         return {
             "id": log.id,
-            "timestamp": log.timestamp.isoformat() if log.timestamp else None,
+            "timestamp": format_datetime_utc(log.timestamp),
             "tenant": log.tenant,
             "source": log.source,
             "event_type": log.event_type,
@@ -93,8 +96,8 @@ def get_dashboard_data(
         "filters": {
             "tenant": tenant or "all",
             "source": source or "all",
-            "start": start_dt.isoformat() if start_dt else None,
-            "end": end_dt.isoformat() if end_dt else None,
+            "start": format_datetime_utc(start_dt),
+            "end": format_datetime_utc(end_dt),
         },
         "summary": {
             "total_events": total_events,
