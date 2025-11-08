@@ -20,9 +20,11 @@ def delete_old_data_endpoint(days: int = 7, db: Session = Depends(get_db)):
     Manually trigger the deletion of logs and alerts older than a specified number of days.
     """
     try:
-        retention_service.delete_old_data(db, days)
-        return {"message": f"Data deletion process completed for data older than {days} days."}
+        deleted_counts = retention_service.delete_old_data(db, days)
+        db.commit()
+        return {"message": f"Data deletion process completed. {deleted_counts['logs']} logs and {deleted_counts['alerts']} alerts deleted."}
     except Exception as e:
+        db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
 def get_table_storage(db: Session, table_name: str):
