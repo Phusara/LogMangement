@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class AlertResponse(BaseModel):
@@ -15,3 +15,9 @@ class AlertsListResponse(BaseModel):
     role: str
     total_alerts: int
     alerts: list[AlertResponse]
+
+class Config:
+        orm_mode = True
+        json_encoders = {
+            datetime: lambda value: value.replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+        }

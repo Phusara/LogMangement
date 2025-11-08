@@ -34,10 +34,17 @@ def delete_old_data(db: Session, days: int = 7):
             logger.info(f"Successfully deleted {num_alerts_to_delete} alerts older than {days} days.")
         else:
             logger.info(f"No alerts older than {days} days found to delete.")
+        
+        # Return counts
+        return {
+            'logs': num_logs_to_delete,
+            'alerts': num_alerts_to_delete
+        }
             
     except Exception as e:
         db.rollback()
         logger.error(f"Error deleting old data: {e}")
+        raise
         
     finally:
         db.close()

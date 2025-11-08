@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Union, Annotated, Literal, Any
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class BaseLog(BaseModel):
@@ -92,3 +92,9 @@ LogEntry = Annotated[
     Union[NetworkLog, APILog, FirewallLog, M365Log, CrowdStrikeLog, AWSLog, ADLog],
     Field(discriminator='source')
 ]
+
+class Config:
+        orm_mode = True
+        json_encoders = {
+            datetime: lambda value: value.replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+        }
