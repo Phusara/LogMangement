@@ -21,13 +21,14 @@ def delete_old_data_endpoint(days: int = 7, db: Session = Depends(get_db)):
     """
     try:
         deleted_counts = retention_service.delete_old_data(db, days)
-        db.commit()
+        # No need to commit again - service already commits
         
         # Return consistent response format
         return {
-            "message": f"Data deletion process completed. {deleted_counts.get('logs', 0)} logs and {deleted_counts.get('alerts', 0)} alerts deleted.",
-            "deleted_logs": deleted_counts.get('logs', 0),
-            "deleted_alerts": deleted_counts.get('alerts', 0),
+            "message": f"Data deletion process completed. {deleted_counts.get('logs_deleted', 0)} logs and {deleted_counts.get('alerts_deleted', 0)} alerts deleted.",
+            "deleted_logs": deleted_counts.get('logs_deleted', 0),
+            "deleted_alerts": deleted_counts.get('alerts_deleted', 0),
+            "cutoff_date": deleted_counts.get('cutoff_date'),
             "days": days
         }
     except Exception as e:

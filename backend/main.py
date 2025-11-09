@@ -9,7 +9,7 @@ import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-Base.metadata.create_all(bind=engine)
+# Base.metadata.create_all(bind=engine)
 app = FastAPI(title="Log Management API", version="1.0.0")
 
 # CORS middleware
@@ -27,13 +27,19 @@ def run_delete_old_data():
     db = SessionLocal()
     try:
         logger.info("Running scheduled task to delete old data.")
-        delete_old_data(db)
+        result = delete_old_data(db, days=7)
+        logger.info(f"Cleanup completed: {result}")
+    except Exception as e:
+        logger.error(f"Scheduled cleanup failed: {e}")
     finally:
         db.close()
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(run_delete_old_data, 'interval', days=1)
+# Run every 30 minutes
+scheduler.add_job(run_delete_old_data, 'interval', minutes=30, id='cleanup_job')
 scheduler.start()
+
+logger.info("Scheduler started: Data retention cleanup runs every 30 minutes")
 
 # Include routers
 app.include_router(auth_route.router)
@@ -50,5 +56,6 @@ def read_root():
 @app.on_event("shutdown")
 def shutdown_event():
     scheduler.shutdown()
+    logger.info("Scheduler shutdown")
 
 

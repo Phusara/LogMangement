@@ -36,7 +36,20 @@ const cleanupDays = ref(LOG_RETENTION_DAYS)
 
 const recentLogCount = computed(() => recentLogs.value.length)
 const totalLogCount = computed(() => summary.value.totalEvents ?? 0)
-const oldLogCount = computed(() => Math.max(totalLogCount.value - recentLogCount.value, 0))
+const oldLogCount = computed(() => {
+  const sevenDaysAgo = new Date()
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - LOG_RETENTION_DAYS)
+  
+  // Assuming logs have a timestamp field (adjust the field name as needed)
+  return recentLogs.value.filter(log => {
+    const logDate = new Date(log.timestamp)
+    return logDate < sevenDaysAgo
+  }).length
+})
+
+
+
+
 const mergedCleanupMessage = computed(() => cleanupError.value ?? cleanupMessage.value)
 const isCleanupError = computed(() => Boolean(cleanupError.value))
 const canManageCleanup = computed(() => (user.value?.role ?? '').toString().toLowerCase() === 'admin')
@@ -265,8 +278,7 @@ onBeforeUnmount(() => {
         <h3 class="mb-3 text-base font-semibold text-amber-50">Additional Notes</h3>
         <ul class="list-disc space-y-2 pl-5">
           <li>Automatic cleanup runs every 30 minutes.</li>
-          <li>Logs older than {{ LOG_RETENTION_DAYS }} days are purged during scheduled runs.</li>
-          <li>Alerts expire after {{ ALERT_RETENTION_DAYS }} days unless escalated.</li>
+          <li>Logs and Alerts older than {{ LOG_RETENTION_DAYS }} days are purged during scheduled runs.</li>
           <li>Manual cleanup operations are restricted to administrator roles.</li>
         </ul>
       </aside>

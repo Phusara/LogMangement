@@ -10,7 +10,8 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str  # still a JSON string
 
     class Config:
-        pass
+        env_file = ".env"
+        # pass
 
     @property
     def cors_origins_list(self) -> List[str]:

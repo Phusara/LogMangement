@@ -84,7 +84,8 @@ export const useLogsStore = defineStore('logs', () => {
     uniqueUsers.value ? `${uniqueUsers.value} active sessions` : 'No active sessions',
   )
 
-  const recentLogs = computed(() => logs.value.slice(0, pageSize.value))
+  const logPagination = computed(() => logs.value.slice(0, pageSize.value))
+  const recentLogs = computed(() => logs.value)
   const autoRefreshInterval = computed(() => AUTO_REFRESH_MS)
 
   /**
@@ -362,6 +363,7 @@ export const useLogsStore = defineStore('logs', () => {
     userTrend,
     recentLogs,
     autoRefreshInterval,
+    logPagination,
     // Actions
     setTenant,
     setSourceType,
