@@ -5,7 +5,7 @@ import { API_CONFIG, buildEndpoint, buildURL } from '@/config/api'
 import { logger } from '@/utils/logger'
 
 export const LOG_RETENTION_DAYS = 7
-export const ALERT_RETENTION_DAYS = 30
+export const ALERT_RETENTION_DAYS = 7
 const STORAGE_REFRESH_MS = 30_000
 
 export const useRetentionStore = defineStore('retention', () => {
