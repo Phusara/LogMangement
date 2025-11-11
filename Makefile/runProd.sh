@@ -52,14 +52,14 @@ create_env_files() {
         SECRET_KEY=$(openssl rand -hex 32 2>/dev/null || cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 64 | head -n 1)
         
         cat > backend/.env << EOF
-DATABASE_URL=postgresql://postgres:mysql@db:5432/logs_user
+DATABASE_URL="postgresql://postgres:mysql@db:5432/logs_user"
 SECRET_KEY=${SECRET_KEY}
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:5174
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:5174,http://localhost,http://40.81.187.175:8080
 EOF
         echo -e "${GREEN}[+]${NC} backend/.env created with secure secret key"
-        echo -e "${YELLOW}    Note: Update CORS_ORIGINS with your production domain${NC}"
+        echo -e "${YELLOW}    Note: SECRET_KEY has been auto-generated${NC}"
     else
         echo -e "${GREEN}[+]${NC} backend/.env exists"
     fi
@@ -68,10 +68,10 @@ EOF
     if [ ! -f "frontend/.env" ]; then
         echo -e "${YELLOW}[!]${NC} frontend/.env not found, creating..."
         cat > frontend/.env << 'EOF'
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_BASE_URL=/api
 EOF
         echo -e "${GREEN}[+]${NC} frontend/.env created"
-        echo -e "${YELLOW}    Note: Update VITE_API_BASE_URL with your production backend URL${NC}"
+        echo -e "${YELLOW}    Note: API requests will be proxied through nginx${NC}"
     else
         echo -e "${GREEN}[+]${NC} frontend/.env exists"
     fi
