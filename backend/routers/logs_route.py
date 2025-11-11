@@ -17,7 +17,7 @@ def ingest_event(logs: List[LogEntry], db: Session = Depends(get_db)):
     return ingest_logs_service(logs, db)
 
 
-@router.post("/routerlog/")
+@router.post("/routerlog")
 async def create_router_log(request: Request):
     """Route logs to appropriate port based on log type"""
     body = await request.body()

@@ -45,13 +45,12 @@ create_env_files() {
     # Create backend/.env if it doesn't exist
     if [ ! -f "backend/.env" ]; then
         echo -e "${YELLOW}⚠${NC} backend/.env not found, creating..."
-        cat > backend/.env << 'EOF'
-DATABASE_URL=postgresql://postgres:mysql@db:5432/logs_user
+        # Use printf "%s" to write the string *exactly* as-is with no trailing newline
+        printf "%s" 'DATABASE_URL=postgresql://postgres:mysql@db:5432/logs_user
 SECRET_KEY=a6lg9d3n5v1r8x2y7z0q4w2e5t8u1i3o6p
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:5174
-EOF
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:5174' > backend/.env
         echo -e "${GREEN}✓${NC} backend/.env created"
     else
         echo -e "${GREEN}✓${NC} backend/.env exists"
@@ -60,9 +59,7 @@ EOF
     # Create frontend/.env if it doesn't exist
     if [ ! -f "frontend/.env" ]; then
         echo -e "${YELLOW}⚠${NC} frontend/.env not found, creating..."
-        cat > frontend/.env << 'EOF'
-VITE_API_BASE_URL=http://localhost:8000
-EOF
+        printf "%s" 'VITE_API_BASE_URL=http://localhost:8000' > frontend/.env
         echo -e "${GREEN}✓${NC} frontend/.env created"
     else
         echo -e "${GREEN}✓${NC} frontend/.env exists"
@@ -71,13 +68,25 @@ EOF
     # Create root .env if it doesn't exist (for docker-compose)
     if [ ! -f ".env" ]; then
         echo -e "${YELLOW}⚠${NC} .env not found, creating..."
-        cat > .env << 'EOF'
-POSTGRES_USER=postgres
-POSTGRES_DB=logs_user
-EOF
+        printf "%s" 'POSTGRES_USER=postgres
+POSTGRES_DB=logs_user' > .env
         echo -e "${GREEN}✓${NC} .env created"
     else
         echo -e "${GREEN}✓${NC} .env exists"
+    fi
+}
+
+check_python_deps() {
+    echo ""
+    echo "Checking Python dependencies (requests)..."
+    if ! pip3 show requests > /dev/null 2>&1; then
+        echo -e "${YELLOW}⚠${NC} 'requests' library not found. Installing..."
+        if ! pip3 install requests; then
+             echo -e "${RED}Failed to install 'requests'. Please install it manually.${NC}"
+             exit 1
+        fi
+    else
+        echo -e "${GREEN}✓${NC} 'requests' library already installed."
     fi
 }
 
@@ -156,7 +165,25 @@ start_dev() {
         echo "Container Status:"
         docker-compose ps
         
+        # --- START OF NEW SECTION ---
         echo ""
+        echo "-----------------------------------------"
+        echo -e "  Seeding Development Demo Data"
+        echo "-----------------------------------------"
+        echo "Waiting 10s for API to be ready..."
+        sleep 10 # Wait for API and DB
+        
+        echo "Running demo_dataDEV.py..."
+        if python3 Makefile/demo_dataDEV.py; then
+            echo -e "${GREEN}✓${NC} Demo data successfully seeded."
+        else
+            echo -e "${RED}✗${NC} Failed to seed demo data. Check API status."
+        fi
+        echo "-----------------------------------------"
+        # --- END OF NEW SECTION ---
+
+        echo ""
+        # This prompt is now at the end, after data is seeded
         read -p "Do you want to view logs now? [y/N]: " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -183,6 +210,7 @@ main() {
     check_docker
     check_docker_compose
     check_files
+    check_python_deps  # <-- ADD THIS LINE
     
     # Create .env files if they don't exist
     create_env_files

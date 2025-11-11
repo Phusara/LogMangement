@@ -109,6 +109,27 @@ POSTGRES_DB=logs_user
     }
 }
 
+# --- NEW FUNCTION ---
+# Function to check for python dependencies
+function Test-PythonDeps {
+    Write-Host ""
+    Write-Host "Checking Python dependencies (requests)..." -ForegroundColor Cyan
+    pip3 show requests > $null 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "[!] 'requests' library not found. Installing..." -ForegroundColor Yellow
+        pip3 install requests
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "[-] Failed to install 'requests'. Please install it manually." -ForegroundColor Red
+            return $false
+        }
+        Write-Host "[+] 'requests' library installed." -ForegroundColor Green
+    }
+    else {
+        Write-Host "[+] 'requests' library already installed." -ForegroundColor Green
+    }
+    return $true
+}
+
 # Function to check required files
 function Test-RequiredFiles {
     Write-Host "Checking required files..." -ForegroundColor Cyan
@@ -188,6 +209,25 @@ function Start-DevEnvironment {
         Write-Host "Container Status:" -ForegroundColor Cyan
         docker-compose ps
         
+        # --- START OF MODIFIED SECTION ---
+        Write-Host ""
+        Write-Host "-----------------------------------------" -ForegroundColor Cyan
+        Write-Host "  Seeding Development Demo Data" -ForegroundColor Cyan
+        Write-Host "-----------------------------------------" -ForegroundColor Cyan
+        Write-Host "Waiting 10s for API to be ready..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 10
+        
+        Write-Host "Running demo_dataDEV.py..."
+        python3 Makefile/demo_dataDEV.py
+        
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "[+] Demo data successfully seeded." -ForegroundColor Green
+        }
+        else {
+            Write-Host "[-] Failed to seed demo data. Check API status." -ForegroundColor Red
+        }
+        # --- END OF MODIFIED SECTION ---
+
         Write-Host ""
         $response = Read-Host "Do you want to view logs now? [y/N]"
         if ($response -eq 'y' -or $response -eq 'Y') {
@@ -217,6 +257,7 @@ function Main {
     if (-not (Test-Docker)) { exit 1 }
     if (-not (Test-DockerCompose)) { exit 1 }
     if (-not (Test-RequiredFiles)) { exit 1 }
+    if (-not (Test-PythonDeps)) { exit 1 } # <-- ADDED THIS LINE
     
     # Create .env files if they don't exist
     New-EnvFiles

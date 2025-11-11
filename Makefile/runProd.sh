@@ -91,6 +91,21 @@ EOF
     echo ""
 }
 
+check_python_deps() {
+    echo ""
+    echo "Checking Python dependencies (requests)..."
+    if ! pip3 show requests > /dev/null 2>&1; then
+        echo -e "${YELLOW}⚠${NC} 'requests' library not found. Installing..."
+        if ! pip3 install requests; then
+             echo -e "${RED}Failed to install 'requests'. Please install it manually.${NC}"
+             exit 1
+        fi
+    else
+        echo -e "${GREEN}✓${NC} 'requests' library already installed."
+    fi
+}
+
+
 # Function to check required files
 check_files() {
     echo "Checking required files..."
@@ -177,32 +192,14 @@ pull_images() {
 
 # Function to build and start containers
 start_production() {
-    echo ""
-    echo "Building and starting production environment..."
-    echo "This may take several minutes..."
-    echo ""
+    # ... (rest of function) ...
     
     # Build and start in detached mode
     if docker-compose -f docker-compose.yml up --build -d; then
         echo ""
         echo -e "${GREEN}=========================================${NC}"
         echo -e "${GREEN}  Production environment is running!${NC}"
-        echo -e "${GREEN}=========================================${NC}"
-        echo ""
-        echo "Services:"
-        echo -e "  Frontend:  ${BLUE}http://internlogmange.space${NC} (Port 80)"
-        echo -e "  Frontend:  ${BLUE}https://internlogmange.space${NC} (Port 443, if SSL configured)"
-        echo -e "  Backend:   ${BLUE}Internal only${NC} (accessed via frontend)"
-        echo -e "  API Docs:  ${BLUE}Not exposed in production${NC}"
-        echo "  Vector Syslog Ports: 514, 515, 9000-9004 (UDP)"
-        echo ""
-        echo "Commands:"
-        echo "  View logs:      docker-compose -f docker-compose.yml logs -f"
-        echo "  Stop:           docker-compose -f docker-compose.yml down"
-        echo "  Restart:        docker-compose -f docker-compose.yml restart"
-        echo "  View backend:   docker-compose -f docker-compose.yml logs -f backend"
-        echo "  View frontend:  docker-compose -f docker-compose.yml logs -f frontend"
-        echo ""
+        # ... (all your echo statements for services) ...
         
         # Wait a moment for services to initialize
         echo "Waiting for services to initialize..."
@@ -212,10 +209,28 @@ start_production() {
         echo "Container Status:"
         docker-compose -f docker-compose.yml ps
         
+        # --- START OF NEW SECTION ---
+        echo ""
+        echo "-----------------------------------------"
+        echo -e "  Seeding Production Demo Data"
+        echo "-----------------------------------------"
+        echo "Waiting 10s for API to be ready..."
+        sleep 10 # Wait for API
+        
+        echo "Running demo_dataPROD.py..."
+        if python3 Makefile/demo_dataPROD.py; then
+            echo -e "${GREEN}✓${NC} Demo data successfully seeded."
+        else
+            echo -e "${RED}✗${NC} Failed to seed demo data. Check API status."
+        fi
+        echo "-----------------------------------------"
+        # --- END OF NEW SECTION ---
+        
         echo ""
         echo -e "${GREEN}Production deployment completed successfully!${NC}"
         echo ""
         
+        # This prompt is now at the end
         read -p "Do you want to view logs now? [y/N]: " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -255,6 +270,7 @@ main() {
     check_docker
     check_docker_compose
     check_files
+    check_python_deps
     
     # Create .env files if they don't exist
     create_env_files
