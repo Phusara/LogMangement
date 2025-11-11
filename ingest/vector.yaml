@@ -128,6 +128,25 @@ transforms:
         del(.path)
         del(.source_type)
         
+        # Normalize severity to numeric value
+        if exists(.severity) {
+          if .severity == null {
+            .severity = 0  # Default for null values
+          } else {
+            severity_value = to_string(.severity) ?? "unknown"
+            .severity = get({
+              "debug": 1,
+              "info": 3,
+              "notice": 4,
+              "warning": 5,
+              "error": 7,
+              "critical": 8,
+              "alert": 9,
+              "emergency": 10
+            }, [severity_value]) ?? to_int(.severity) ?? 0
+          }
+        }
+        
         # Add normalized fields
         .received_at = .timestamp
         del(.timestamp)
@@ -138,6 +157,24 @@ transforms:
     inputs: ["M365_syslog"]
     type: remap
     source: |
+        # Normalize severity to numeric value
+        if exists(.severity) {
+          if .severity == null {
+            .severity = 0  # Default for null values
+          } else {
+            severity_value = to_string(.severity) ?? "unknown"
+            .severity = get({
+              "debug": 1,
+              "info": 3,
+              "notice": 4,
+              "warning": 5,
+              "error": 7,
+              "critical": 8,
+              "alert": 9,
+              "emergency": 10
+            }, [severity_value]) ?? to_int(.severity) ?? 0
+          }
+        }
     
         .@timestamp = .timestamp
         del(.timestamp)
@@ -148,6 +185,24 @@ transforms:
     inputs: ["Crowdstrike"]
     type: remap
     source: |
+        # Normalize severity to numeric value
+        if exists(.severity) {
+          if .severity == null {
+            .severity = 0  # Default for null values
+          } else {
+            severity_value = to_string(.severity) ?? "unknown"
+            .severity = get({
+              "debug": 1,
+              "info": 3,
+              "notice": 4,
+              "warning": 5,
+              "error": 7,
+              "critical": 8,
+              "alert": 9,
+              "emergency": 10
+            }, [severity_value]) ?? to_int(.severity) ?? 0
+          }
+        }
    
         .@timestamp = .timestamp
         del(.timestamp)
@@ -161,6 +216,26 @@ transforms:
         .account_id = .cloud.account_id
         .region = .cloud.region
         .service = .cloud.service
+        
+        # Normalize severity to numeric value
+        if exists(.severity) {
+          if .severity == null {
+            .severity = 0  # Default for null values
+          } else {
+            severity_value = to_string(.severity) ?? "unknown"
+            .severity = get({
+              "debug": 1,
+              "info": 3,
+              "notice": 4,
+              "warning": 5,
+              "error": 7,
+              "critical": 8,
+              "alert": 9,
+              "emergency": 10
+            }, [severity_value]) ?? to_int(.severity) ?? 0
+          }
+        }
+        
         # Clean up fields
         del(.timestamp)
         del(.path)
@@ -170,6 +245,25 @@ transforms:
     inputs: ["MCAD"]
     type: remap
     source: |
+        # Normalize severity to numeric value
+        if exists(.severity) {
+          if .severity == null {
+            .severity = 0  # Default for null values
+          } else {
+            severity_value = to_string(.severity) ?? "unknown"
+            .severity = get({
+              "debug": 1,
+              "info": 3,
+              "notice": 4,
+              "warning": 5,
+              "error": 7,
+              "critical": 8,
+              "alert": 9,
+              "emergency": 10
+            }, [severity_value]) ?? to_int(.severity) ?? 0
+          }
+        }
+        
         del(.timestamp)
         del(.log)
         del(.path)

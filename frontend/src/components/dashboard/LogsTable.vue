@@ -8,12 +8,21 @@ const props = defineProps({
   },
 })
 
-const severityStyles = {
-  info: 'bg-cyan-500/15 text-cyan-200 border border-cyan-500/30',
-  warning: 'bg-amber-500/15 text-amber-200 border border-amber-500/30',
-  error: 'bg-rose-500/15 text-rose-200 border border-rose-500/30',
-  success: 'bg-emerald-500/15 text-emerald-200 border border-emerald-500/30',
+
+const getSeverityStyle = (severity) => {
+  const level = Number(severity)
+  
+  if (level >= 8) {
+    return 'bg-rose-500/15 text-rose-200 border border-rose-500/30'
+  } else if (level >= 5) {
+    return 'bg-amber-500/15 text-amber-200 border border-amber-500/30'
+  } else if (level >= 3) {
+    return 'bg-cyan-500/15 text-cyan-200 border border-cyan-500/30'
+  } else {
+    return 'bg-emerald-500/15 text-emerald-200 border border-emerald-500/30'
+  }
 }
+
 
 const formatRaw = (entry) => {
   if (!entry) return ''
@@ -82,8 +91,8 @@ const formatRaw = (entry) => {
           </td>
           <td class="px-6 py-4">
             <span
-              class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize"
-              :class="severityStyles[log.severity] || severityStyles.info"
+              class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold"
+              :class="getSeverityStyle(log.severity)"
             >
               {{ log.severity }}
             </span>

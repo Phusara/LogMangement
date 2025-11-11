@@ -4,7 +4,7 @@ services:
   vector:
     image: timberio/vector:0.51.0-debian
     volumes:
-      - ./ingest/config/vector.yaml:/etc/vector/vector.yaml
+      - ./ingest/vector.yaml:/etc/vector/vector.yaml
     ports:
       - "514:514/udp"   # route_syslog
       - "515:515/udp"   # firewall_syslog
@@ -16,7 +16,9 @@ services:
     restart: always
 
   backend:
-    build: ./backend
+    build:
+      context: ./backend         
+      dockerfile: Dockerfile.prod 
     restart: on-failure
     env_file:
       - ./backend/.env
@@ -25,7 +27,9 @@ services:
         condition: service_healthy
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend         
+      dockerfile: Dockerfile.prod 
     ports:
       - "80:80"
       - "443:443"

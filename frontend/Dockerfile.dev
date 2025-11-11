@@ -1,0 +1,18 @@
+# This is frontend/Dockerfile.dev
+# It only installs dependencies and starts the dev server.
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package.json to install dependencies
+COPY package*.json ./
+
+# Install (this will be cached)
+RUN npm install
+
+# Expose the dev port (change 3000 if yours is different)
+EXPOSE 3000
+
+# The default command to start the dev server
+CMD ["npm", "run", "dev"]

@@ -205,12 +205,10 @@ export const useLogsStore = defineStore('logs', () => {
 
         const sourceIp = item.src_ip ?? item.ip ?? 'N/A'
 
-        // Handle severity - can be number or string
-        let severity = 'info'
+        // Handle severity - can be number 
+        let severity = 0
         if (item.severity !== null && item.severity !== undefined) {
-          severity = typeof item.severity === 'number' 
-            ? item.severity.toString() 
-            : item.severity.toString().toLowerCase()
+          severity = typeof item.severity === 'number'
         }
 
         return {
