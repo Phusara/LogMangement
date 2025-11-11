@@ -1,3 +1,4 @@
+
 services:
   backend:
     build:
@@ -28,4 +29,5 @@ services:
     restart: "no"
     command: "npm run dev -- --host --port 3000"
     
-    env_file: null
+    env_file:
+      - ./frontend/.env

@@ -151,7 +151,7 @@ show_production_warnings() {
 stop_containers() {
     echo ""
     echo "Stopping existing containers..."
-    docker-compose down 2>/dev/null || true
+    docker-compose -f docker-compose.yml down 2>/dev/null || true
     echo -e "${GREEN}Containers stopped${NC}"
 }
 
@@ -162,7 +162,7 @@ cleanup() {
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         echo "Removing volumes..."
-        docker-compose down -v
+        docker-compose -f docker-compose.yml down -v
         echo -e "${GREEN}Volumes removed${NC}"
     fi
 }
@@ -171,7 +171,7 @@ cleanup() {
 pull_images() {
     echo ""
     echo "Pulling latest base images..."
-    docker-compose pull db vector 2>/dev/null || true
+    docker-compose -f docker-compose.yml pull db vector 2>/dev/null || true
     echo -e "${GREEN}Base images updated${NC}"
 }
 
@@ -183,25 +183,25 @@ start_production() {
     echo ""
     
     # Build and start in detached mode
-    if docker-compose up --build -d; then
+    if docker-compose -f docker-compose.yml up --build -d; then
         echo ""
         echo -e "${GREEN}=========================================${NC}"
         echo -e "${GREEN}  Production environment is running!${NC}"
         echo -e "${GREEN}=========================================${NC}"
         echo ""
         echo "Services:"
-        echo -e "  Frontend:  ${BLUE}http://localhost${NC} (Port 80)"
-        echo -e "  Frontend:  ${BLUE}https://localhost${NC} (Port 443, if SSL configured)"
+        echo -e "  Frontend:  ${BLUE}http://internlogmange.space${NC} (Port 80)"
+        echo -e "  Frontend:  ${BLUE}https://internlogmange.space${NC} (Port 443, if SSL configured)"
         echo -e "  Backend:   ${BLUE}Internal only${NC} (accessed via frontend)"
         echo -e "  API Docs:  ${BLUE}Not exposed in production${NC}"
         echo "  Vector Syslog Ports: 514, 515, 9000-9004 (UDP)"
         echo ""
         echo "Commands:"
-        echo "  View logs:      docker-compose logs -f"
-        echo "  Stop:           docker-compose down"
-        echo "  Restart:        docker-compose restart"
-        echo "  View backend:   docker-compose logs -f backend"
-        echo "  View frontend:  docker-compose logs -f frontend"
+        echo "  View logs:      docker-compose -f docker-compose.yml logs -f"
+        echo "  Stop:           docker-compose -f docker-compose.yml down"
+        echo "  Restart:        docker-compose -f docker-compose.yml restart"
+        echo "  View backend:   docker-compose -f docker-compose.yml logs -f backend"
+        echo "  View frontend:  docker-compose -f docker-compose.yml logs -f frontend"
         echo ""
         
         # Wait a moment for services to initialize
@@ -210,7 +210,7 @@ start_production() {
         
         # Show container status
         echo "Container Status:"
-        docker-compose ps
+        docker-compose -f docker-compose.yml ps
         
         echo ""
         echo -e "${GREEN}Production deployment completed successfully!${NC}"
@@ -221,11 +221,11 @@ start_production() {
         if [[ $REPLY =~ ^[Yy]$ ]]; then
             echo ""
             echo "Showing logs (press Ctrl+C to exit)..."
-            docker-compose logs -f
+            docker-compose -f docker-compose.yml logs -f
         fi
     else
         echo -e "${RED}Failed to start containers${NC}"
-        echo "Check the logs with: docker-compose logs"
+        echo "Check the logs with: docker-compose -f docker-compose.yml logs"
         exit 1
     fi
 }
@@ -236,7 +236,7 @@ backup_database() {
     echo "Creating database backup..."
     BACKUP_FILE="backup_$(date +%Y%m%d_%H%M%S).sql"
     
-    if docker-compose exec -T db pg_dump -U postgres logs_user > "$BACKUP_FILE" 2>/dev/null; then
+    if docker-compose -f docker-compose.yml exec -T db pg_dump -U postgres logs_user > "$BACKUP_FILE" 2>/dev/null; then
         echo -e "${GREEN}Database backed up to: $BACKUP_FILE${NC}"
     else
         echo -e "${YELLOW}Warning: Could not create backup (database may not be running)${NC}"
