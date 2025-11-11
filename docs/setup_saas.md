@@ -62,9 +62,10 @@ chmod +x Makefile/runProd.sh
 |Port 80   (HTTP)     |- 0.0.0.0/0|
 |Port 443  (HTTPS)    |- 0.0.0.0/0|
 |Port 9000 - 9004 (Ingest)   |- 0.0.0.0/0|
-|Port 80 (Frontend) |- 0.0.0.0/0|
+|Port 443 (Frontend) |- 0.0.0.0/0|
 |Port 8000 (Backend)  |- 0.0.0.0/0|
 |Port 514  (Syslog)   |- 0.0.0.0/0|
 |Port 515  (Syslog)   |- 0.0.0.0/0|
+
 
 
