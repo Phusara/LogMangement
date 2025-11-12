@@ -1,7 +1,7 @@
 import socket
 import random
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # --- Configuration ---
 
@@ -22,10 +22,19 @@ DEST_IPS = ['8.8.8.8', '1.1.1.1', '104.16.249.249', '9.9.9.9']
 
 # --- Helper functions to generate random log messages ---
 
-def get_current_timestamp():
-    """Generates a syslog-style timestamp, e.g., 'Aug 20 13:01:02'"""
+def get_current_timestamp(max_days: int = 30):
+    """Generates a syslog-style timestamp in the past (not future).
+    e.g., 'Aug 20 13:01:02'. The timestamp is now minus a random offset
+    between 0 and `max_days` days.
+
+    Args:
+        max_days: maximum number of days in the past to pick from (default 1)
+    """
+    max_seconds = max_days * 24 * 3600
+    offset = random.randint(0, max_seconds)
+    past = datetime.now() - timedelta(seconds=offset)
     # %e uses a space for padding single-digit days, matching your example
-    return datetime.now().strftime('%b %e %H:%M:%S')
+    return past.strftime('%b %e %H:%M:%S')
 
 def generate_random_mac():
     """Generates a random MAC address."""

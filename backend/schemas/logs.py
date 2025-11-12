@@ -1,6 +1,11 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, List, Dict, Union, Annotated, Literal, Any
 from datetime import datetime, timezone
+
+# Ensure datetimes are serialized as UTC ISO strings ending with 'Z'
+BaseModel.model_config = ConfigDict(
+    json_encoders={datetime: lambda v: v.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")}
+)
 
 
 class BaseLog(BaseModel):
@@ -13,6 +18,32 @@ class BaseLog(BaseModel):
     tags: Optional[List[str]] = None
     raw: Optional[Dict[str, Any]] = None
     log_source: Optional[str] = None
+
+    @field_validator("timestamp", mode="before")
+    @classmethod
+    def _ensure_timestamp_utc(cls, v):
+        # Accept strings like "2025-11-12T19:50:57Z" and datetimes; always return tz-aware UTC datetime
+        if isinstance(v, str):
+            s = v
+            if s.endswith("Z"):
+                s = s.replace("Z", "+00:00")
+            try:
+                dt = datetime.fromisoformat(s)
+            except Exception:
+                # fallback: naive parse attempt (keeps behavior from datetime_helpers if needed)
+                from ..utils.datetime_helpers import parse_datetime  # relative import safe at runtime
+                dt = parse_datetime(v)
+        elif isinstance(v, datetime):
+            dt = v
+        else:
+            raise ValueError("Invalid timestamp value")
+
+        # Make tz-aware UTC
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        else:
+            dt = dt.astimezone(timezone.utc)
+        return dt
 
 
 class FirewallLog(BaseLog):
@@ -92,9 +123,3 @@ LogEntry = Annotated[
     Union[NetworkLog, APILog, FirewallLog, M365Log, CrowdStrikeLog, AWSLog, ADLog],
     Field(discriminator='source')
 ]
-
-class Config:
-        orm_mode = True
-        json_encoders = {
-            datetime: lambda value: value.replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
-        }

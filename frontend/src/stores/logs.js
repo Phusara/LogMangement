@@ -177,10 +177,11 @@ export const useLogsStore = defineStore('logs', () => {
       logger.debug('Dashboard summary loaded', summary.value)
 
       // Process timeline
+      // Render timeline labels in UTC so dashboard shows server timestamps unchanged
       timeline.value = (payload.timeline ?? []).map((entry) => {
         const bucketDate = entry.bucket ? new Date(entry.bucket) : null
         const label = bucketDate
-          ? bucketDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          ? bucketDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })
           : entry.bucket ?? ''
         return {
           time: label,

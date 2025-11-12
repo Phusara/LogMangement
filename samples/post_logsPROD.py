@@ -72,9 +72,12 @@ def generate_log():
     log = {}
     log["tenant"] = random.choice(TENANTS)
     log.update(log_template)
-    
-    log["@timestamp"] = (datetime.utcnow() - timedelta(seconds=random.randint(0, 3600))).isoformat() + "Z"
-    
+    # Pick a random timestamp in the past (not future). Up to `max_days` days back.
+    # Change `max_days` to control the range (default 30 days).
+    max_days = 30
+    max_seconds = max_days * 24 * 3600
+    offset = random.randint(0, max_seconds)
+    log["@timestamp"] = (datetime.utcnow() - timedelta(seconds=offset)).isoformat() + "Z"
     if "user" in log:
         log["user"] = random.choice(USERS)
     if "ip" in log:

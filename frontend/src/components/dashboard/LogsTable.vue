@@ -1,5 +1,16 @@
 <script setup>
 import { format } from 'date-fns'
+const formatUTC = (d) => {
+  if (!d) return ''
+  const date = d instanceof Date ? d : new Date(d)
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+  const mon = months[date.getUTCMonth()]
+  const day = String(date.getUTCDate()).padStart(2, '0')
+  const hh = String(date.getUTCHours()).padStart(2, '0')
+  const mm = String(date.getUTCMinutes()).padStart(2, '0')
+  const ss = String(date.getUTCSeconds()).padStart(2, '0')
+  return `${mon} ${day}, ${hh}:${mm}:${ss}`
+}
 
 const props = defineProps({
   logs: {
@@ -87,7 +98,7 @@ const formatRaw = (entry) => {
           class="transition-colors hover:bg-slate-800/40"
         >
           <td class="px-6 py-4 font-mono text-xs text-slate-300">
-            {{ format(log.timestamp, 'MMM dd, HH:mm:ss') }}
+            {{ formatUTC(log.timestamp) }}
           </td>
           <td class="px-6 py-4">
             <span
