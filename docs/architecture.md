@@ -57,8 +57,8 @@ tenant   | Access their own logs        |
 ## Ports
 |Port | Access|
 |---|---|
-|Port 9000 - 9004 (TCP)| Backend -> Vector  |
-|Port 443 (TCP)| Frontend (Https)|
+|Port 9000 - 9004 (HTTP)| Backend -> Vector  |
+|Port 443 (HTTPS)| Frontend (Https)|
 |Port 8000 (TCP) | Backend|
 |Port 514  (UDP) | Vector|
 |Port 515  (UDP) | Vector|
@@ -75,3 +75,4 @@ tenant   | Access their own logs        |
 - **Every 30 minutes will auto clean up the old logs:** The `main.py` file configures a `BackgroundScheduler` to run the cleanup job every 30 minutes.
 - **Admin can manually trigger Data clean up:** The `retention_route.py` file exposes a `/retention/delete-old-data/` API endpoint that allows for manually triggering the deletion.
 ---
+
