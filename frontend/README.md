@@ -1,6 +1,6 @@
-# Intern_ProJ
+# Frontend for Log Mangement
 
-This template should help get you started developing with Vue 3 in Vite.
+This is document for running seperate Frontend on local 
 
 ## Recommended IDE Setup
 
