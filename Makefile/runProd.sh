@@ -1,8 +1,3 @@
-#!/bin/bash
-
-# runProd.sh - Automated script to start production environment
-# This script manages Docker Compose for the LogManagement application in production mode
-
 set -e  # Exit on error
 
 echo "========================================="
@@ -94,14 +89,30 @@ EOF
 check_python_deps() {
     echo ""
     echo "Checking Python dependencies (requests)..."
+    # If pip3 is not present on the host, fall back to running the seeding script inside the backend container.
+    USE_DOCKER_PYTHON=0
+    if ! command -v pip3 > /dev/null 2>&1; then
+        echo -e "${YELLOW}⚠${NC} pip3 not found on host. The demo seeding will be executed inside the backend container."
+        USE_DOCKER_PYTHON=1
+        return 0
+    fi
+
+    # If pip3 exists, prefer installing from requirements.txt if available, otherwise try to install requests directly.
     if ! pip3 show requests > /dev/null 2>&1; then
-        echo -e "${YELLOW}⚠${NC} 'requests' library not found. Installing..."
-        if ! pip3 install requests; then
-             echo -e "${RED}Failed to install 'requests'. Please install it manually.${NC}"
-             exit 1
+        if [ -f "requirements.txt" ]; then
+            echo -e "${YELLOW}⚠${NC} 'requests' not found. Installing from requirements.txt..."
+            if pip3 install -r requirements.txt; then
+                echo -e "${GREEN}✓${NC} Python dependencies installed."
+            else
+                echo -e "${YELLOW}⚠${NC} Failed to install from requirements.txt. Will attempt to run seeding inside backend container."
+                USE_DOCKER_PYTHON=1
+            fi
+        else
+            echo -e "${YELLOW}⚠${NC} 'requests' not found and requirements.txt missing. The demo seeding will be executed inside the backend container."
+            USE_DOCKER_PYTHON=1
         fi
     else
-        echo -e "${GREEN}✓${NC} 'requests' library already installed."
+        echo -e "${GREEN}✓${NC} 'requests' library already installed on host."
     fi
 }
 
@@ -216,12 +227,79 @@ start_production() {
         echo "-----------------------------------------"
         echo "Waiting 10s for API to be ready..."
         sleep 10 # Wait for API
-        
+
         echo "Running demo_dataPROD.py..."
-        if python3 init/demo_dataPROD.py; then
-            echo -e "${GREEN}✓${NC} Demo data successfully seeded."
+        if [ "${USE_DOCKER_PYTHON:-0}" -eq 1 ]; then
+            echo "Running demo seeding inside backend container..."
+
+            # Get backend container id (if running)
+            BACKEND_CID=$(docker-compose -f docker-compose.yml ps -q backend || true)
+
+            # If container not found, try to start it short-lived to ensure it exists
+            if [ -z "$BACKEND_CID" ]; then
+                echo -e "${YELLOW}⚠${NC} Backend container not found. Attempting to ensure backend service is started..."
+                docker-compose -f docker-compose.yml up -d backend || true
+                sleep 2
+                BACKEND_CID=$(docker-compose -f docker-compose.yml ps -q backend || true)
+            fi
+
+            # Try common paths inside container first
+            if docker-compose -f docker-compose.yml exec -T backend python3 init/demo_dataPROD.py 2>/dev/null; then
+                echo -e "${GREEN}✓${NC} Demo data successfully seeded (inside container: init/)."
+            elif docker-compose -f docker-compose.yml exec -T backend python3 /app/init/demo_dataPROD.py 2>/dev/null; then
+                echo -e "${GREEN}✓${NC} Demo data successfully seeded (inside container: /app/init/)."
+            else
+                # Not present inside container — try to copy from host into container and run
+                echo -e "${YELLOW}⚠${NC} demo_dataPROD.py not found inside container. Will try copying from host into container."
+
+                # Candidate host locations (add any known host paths here)
+                HOST_CANDIDATES=(
+                    "backend/init/demo_dataPROD.py"
+                    "backend/init/demoProd.py"
+                    "/home/azureuser/LogMangement/init/demo_dataPROD.py"
+                    "/home/azureuser/LogMangement/init/demoProd.py"
+                )
+
+                FOUND_HOST_FILE=""
+                for p in "${HOST_CANDIDATES[@]}"; do
+                    if [ -f "$p" ]; then
+                        FOUND_HOST_FILE="$p"
+                        break
+                    fi
+                done
+
+                if [ -n "$FOUND_HOST_FILE" ] && [ -n "$BACKEND_CID" ]; then
+                    echo "Found seeding script on host at: $FOUND_HOST_FILE"
+                    echo "Copying into backend container ($BACKEND_CID) -> /tmp/demo_seed.py"
+                    docker cp "$FOUND_HOST_FILE" "${BACKEND_CID}":/tmp/demo_seed.py
+                    if docker-compose -f docker-compose.yml exec -T backend python3 /tmp/demo_seed.py; then
+                        echo -e "${GREEN}✓${NC} Demo data successfully seeded (copied into container)."
+                    else
+                        echo -e "${RED}✗${NC} Failed to run copied demo_dataPROD.py inside container. Check backend logs."
+                    fi
+                else
+                    if [ -z "$FOUND_HOST_FILE" ]; then
+                        echo -e "${RED}✗${NC} No seeding script found on host. Looked at: ${HOST_CANDIDATES[*]}"
+                        echo "Add backend/init/demo_dataPROD.py to the repo or update the Docker image to include it."
+                    else
+                        echo -e "${RED}✗${NC} Backend container not available to copy script into."
+                    fi
+
+                    # As a last resort attempt a one-off run (may fail if script missing in image)
+                    echo -e "${YELLOW}⚠${NC} Attempting one-off container run as fallback..."
+                    if docker-compose -f docker-compose.yml run --rm backend python3 init/demo_dataPROD.py; then
+                        echo -e "${GREEN}✓${NC} Demo data successfully seeded (one-off container run)."
+                    else
+                        echo -e "${RED}✗${NC} Failed to seed demo data. Check backend logs and ensure seeding script is present in the image or on host."
+                    fi
+                fi
+            fi
         else
-            echo -e "${RED}✗${NC} Failed to seed demo data. Check API status."
+            if python3 init/demo_dataPROD.py; then
+                echo -e "${GREEN}✓${NC} Demo data successfully seeded (host python)."
+            else
+                echo -e "${RED}✗${NC} Failed to seed demo data using host python. If pip3 is missing or dependencies aren't installed, re-run with a system python/pip or let the script seed inside the backend container."
+            fi
         fi
         echo "-----------------------------------------"
         # --- END OF NEW SECTION ---

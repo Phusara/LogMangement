@@ -2,7 +2,7 @@ from datetime import datetime
 import requests
 
 
-BASE_URL = "https://internlogmange.space/api/routerlog"
+BASE_URL = "https://internlogmange.space/api"
 
 def main():
     # Register users
