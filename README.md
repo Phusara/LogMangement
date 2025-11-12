@@ -126,13 +126,22 @@ docker-compose down
 
 Once the services are running, you can access them at:
 
-  * **Frontend (Web UI):** `http://localhost:8080`
-      * *Mapped from port 80 in the `frontend` container*.
+  * **Frontend (Web UI):** `http://localhost:3000`
+      * *Mapped from port 3000 in the `frontend` container*.
   * **Backend (API Docs):** `http://localhost:8000/docs`
       * *Mapped from port 8000 in the `backend` container*.
   * **Vector (Log Ingestion):**
       * **Syslog (UDP):** `127.0.0.1:514` (route) & `127.0.0.1:515` (firewall)
       * **HTTP (JSON):** `http://localhost:9000` (JSON), `http://localhost:9001` (M365), etc.
+   
+## For testing the dataflow and logs
+You need to download python in your Machine + IDE like VScode in order to send those logs <br>
+Be sure that you have run all FE,BE and Vector or Run by Docker
+```
+# run this in your IDE
+pip install requests
+```
+After install now you are ready to send logs
 
 ## 📂 Project Structure
 
