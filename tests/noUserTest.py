@@ -60,7 +60,7 @@ LOG_TEMPLATES = [
     }
 ]
 
-TENANTS = ['demoE', 'demoF','demoC','demoD']
+TENANTS = ['demoE', 'demoF']
 USERS = ['alice', 'bob', 'charlie', 'david', 'eve', 'frank']
 IPS = [f"203.0.113.{i}" for i in range(1, 255)]
 HOSTS = [f"WIN10-0{i}" for i in range(1, 5)] + [f"DC0{i}" for i in range(1, 3)]
