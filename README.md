@@ -43,7 +43,7 @@ This project is configured to run entirely with Docker Compose.
 
 ### 1. Configuration
 
-You must create `.env` files for the backend and frontend before starting.
+You must create `.env` files for the Main,backend and frontend before starting.
 
 **Backend Configuration:**
 
