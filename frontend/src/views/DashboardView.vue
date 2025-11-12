@@ -86,7 +86,7 @@ onBeforeUnmount(() => {
 
     <section class="grid grid-cols-1 gap-6 xl:grid-cols-4">
       <div class="space-y-6 xl:col-span-3">
-        <TimelineChart :data="timelineData" />
+  <TimelineChart :data="timelineData" :date-range="dateRange" />
 
         <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
           <TopItemsList title="Top IP Addresses" :items="topIPs" />

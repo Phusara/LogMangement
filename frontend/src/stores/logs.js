@@ -178,6 +178,8 @@ export const useLogsStore = defineStore('logs', () => {
 
       // Process timeline
       // Render timeline labels in UTC so dashboard shows server timestamps unchanged
+      // Keep original bucket ISO string on each timeline item so UI can
+      // decide how to render or filter by day (UTC).
       timeline.value = (payload.timeline ?? []).map((entry) => {
         const bucketDate = entry.bucket ? new Date(entry.bucket) : null
         const label = bucketDate
@@ -186,6 +188,7 @@ export const useLogsStore = defineStore('logs', () => {
         return {
           time: label,
           count: entry.count ?? 0,
+          bucket: entry.bucket ?? null, // original ISO bucket string from backend
         }
       })
 
