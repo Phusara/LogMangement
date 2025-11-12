@@ -1,6 +1,7 @@
 # Log Management Platform
 
-This is a complete, multi-tenant log management and security monitoring platform.
+This is a complete, multi-tenant log management and security monitoring platform. <br>
+Try the deployed production here http://internlogmange.space/
 
 It is built as a full-stack, containerized application that uses **Vector** for high-performance log ingestion, a **FastAPI** backend for data processing and API access, a **PostgreSQL** database for storage, and a **Vue.js** frontend for data visualization and user interaction.
 

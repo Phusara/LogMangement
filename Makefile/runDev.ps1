@@ -75,8 +75,8 @@ DATABASE_URL=postgresql://postgres:mysql@db:5432/logs_user
 SECRET_KEY=a6lg9d3n5v1r8x2y7z0q4w2e5t8u1i3o6p
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:5174
-"@ | Out-File -FilePath "backend\.env" -Encoding UTF8 -NoNewline
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:5174,http://localhost:8000
+"@ | Set-Content -Path "backend\.env" -Encoding ASCII
         Write-Host "[+] backend\.env created" -ForegroundColor Green
     }
     else {
@@ -88,7 +88,7 @@ CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:5174
         Write-Host "[!] frontend\.env not found, creating..." -ForegroundColor Yellow
         @"
 VITE_API_BASE_URL=http://localhost:8000
-"@ | Out-File -FilePath "frontend\.env" -Encoding UTF8 -NoNewline
+"@ | Set-Content -Path "frontend\.env" -Encoding ASCII
         Write-Host "[+] frontend\.env created" -ForegroundColor Green
     }
     else {
@@ -101,7 +101,7 @@ VITE_API_BASE_URL=http://localhost:8000
         @"
 POSTGRES_USER=postgres
 POSTGRES_DB=logs_user
-"@ | Out-File -FilePath ".env" -Encoding UTF8 -NoNewline
+"@ | Set-Content -Path ".env" -Encoding ASCII
         Write-Host "[+] .env created" -ForegroundColor Green
     }
     else {

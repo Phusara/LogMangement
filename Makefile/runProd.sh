@@ -51,7 +51,7 @@ DATABASE_URL="postgresql://postgres:mysql@db:5432/logs_user"
 SECRET_KEY=${SECRET_KEY}
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:5174,http://localhost,http://40.81.187.175:8080
+CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:5174,http://localhost,http://40.81.187.175:80
 EOF
         echo -e "${GREEN}[+]${NC} backend/.env created with secure secret key"
         echo -e "${YELLOW}    Note: SECRET_KEY has been auto-generated${NC}"
