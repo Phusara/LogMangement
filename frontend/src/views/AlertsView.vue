@@ -278,7 +278,7 @@ onBeforeUnmount(() => {
                   {{ alert.message }}
                 </td>
                 <td class="px-6 py-4 font-mono text-xs text-slate-300">{{ alert.ipAddress }}</td>
-                <td class="px-6 py-4 text-slate-400">{{ alert.tenant ?? '—' }}</td>
+                <td class="px-6 py-4 text-slate-400">{{ alert.tenant ?? (alert.log && alert.log.tenant) ?? '—' }} </td>
                 <td class="px-6 py-4 text-slate-300">{{ formatTimestamp(alert) }}</td>
               </tr>
             </tbody>

@@ -218,7 +218,7 @@ start_production() {
         sleep 10 # Wait for API
         
         echo "Running demo_dataPROD.py..."
-        if python3 Makefile/demo_dataPROD.py; then
+        if python3 init/demo_dataPROD.py; then
             echo -e "${GREEN}✓${NC} Demo data successfully seeded."
         else
             echo -e "${RED}✗${NC} Failed to seed demo data. Check API status."

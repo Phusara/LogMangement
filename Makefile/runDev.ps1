@@ -114,10 +114,10 @@ POSTGRES_DB=logs_user
 function Test-PythonDeps {
     Write-Host ""
     Write-Host "Checking Python dependencies (requests)..." -ForegroundColor Cyan
-    pip3 show requests > $null 2>&1
+    python3 -m pip show requests > $null 2>&1
     if ($LASTEXITCODE -ne 0) {
         Write-Host "[!] 'requests' library not found. Installing..." -ForegroundColor Yellow
-        pip3 install requests
+        python3 -m pip install requests
         if ($LASTEXITCODE -ne 0) {
             Write-Host "[-] Failed to install 'requests'. Please install it manually." -ForegroundColor Red
             return $false
@@ -218,10 +218,10 @@ function Start-DevEnvironment {
         Start-Sleep -Seconds 10
         
         Write-Host "Running demo_dataDEV.py..."
-        python3 Makefile/demo_dataDEV.py
+        python3 init/demo_dataDEV.py
         
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "[+] Demo data successfully seeded." -ForegroundColor Green
+            Write-Host "[+] Demo data successfully seeded." -ForegroundColor Green # <-- DELETE THIS
         }
         else {
             Write-Host "[-] Failed to seed demo data. Check API status." -ForegroundColor Red

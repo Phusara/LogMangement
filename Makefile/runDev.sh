@@ -174,7 +174,7 @@ start_dev() {
         sleep 10 # Wait for API and DB
         
         echo "Running demo_dataDEV.py..."
-        if python3 Makefile/demo_dataDEV.py; then
+        if python3 init/demo_dataDEV.py; then
             echo -e "${GREEN}✓${NC} Demo data successfully seeded."
         else
             echo -e "${RED}✗${NC} Failed to seed demo data. Check API status."

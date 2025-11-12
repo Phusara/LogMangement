@@ -59,7 +59,10 @@ transforms:
       .@timestamp = .timestamp
       .source = "network"
       # Map severity levels to numeric values
-      severity_value = to_string(.severity) ?? "unknown"
+      severity_value, err = to_string(.severity)
+      if err != null {
+        severity_value = "unknown"
+      }
       .severity = get({
       "debug": 1,
       "info": 3,
@@ -85,7 +88,10 @@ transforms:
           .vendor = appname_parts.vendor
           del(.appname)
         }
-              severity_value = to_string(.severity) ?? "unknown"
+              severity_value, err = to_string(.severity)
+              if err != null {
+                severity_value = "unknown"
+              }
         .severity = get({
           "debug": 1,
           "info": 3,
@@ -130,11 +136,23 @@ transforms:
         
         # Normalize severity to numeric value
         if exists(.severity) {
-          if .severity == null {
-            .severity = 0  # Default for null values
-          } else {
-            severity_value = to_string(.severity) ?? "unknown"
-            .severity = get({
+          # null -> default 0
+          if is_null(.severity) {
+            .severity = 0
+          } else if is_integer(.severity) || is_float(.severity) {
+            # already numeric - keep as integer (infallible assignment)
+            .severity, err = to_int(.severity)
+            if err != null {
+              .severity = 0
+            }
+          } else if is_string(.severity) {
+            # handle textual severities (case-insensitive) or numeric-as-string
+            sv, err = to_string(.severity)
+            if err != null {
+              sv = ""
+            }
+            sv_lower = downcase(sv)
+            mapped, err_m = get({
               "debug": 1,
               "info": 3,
               "notice": 4,
@@ -143,7 +161,22 @@ transforms:
               "critical": 8,
               "alert": 9,
               "emergency": 10
-            }, [severity_value]) ?? to_int(.severity) ?? 0
+            }, [sv_lower])
+            if err_m != null {
+              mapped = null
+            }
+            if mapped != null {
+              .severity = mapped
+            } else {
+              tmp, err2 = to_int(sv)
+              if err2 == null {
+                .severity = tmp
+              } else {
+                .severity = 0
+              }
+            }
+          } else {
+            .severity = 0
           }
         }
         
@@ -159,11 +192,23 @@ transforms:
     source: |
         # Normalize severity to numeric value
         if exists(.severity) {
-          if .severity == null {
-            .severity = 0  # Default for null values
-          } else {
-            severity_value = to_string(.severity) ?? "unknown"
-            .severity = get({
+          # null -> default 0
+          if is_null(.severity) {
+            .severity = 0
+          } else if is_integer(.severity) || is_float(.severity) {
+            # already numeric - keep as integer (infallible assignment)
+            .severity, err = to_int(.severity)
+            if err != null {
+              .severity = 0
+            }
+          } else if is_string(.severity) {
+            # handle textual severities (case-insensitive) or numeric-as-string
+            sv, err = to_string(.severity)
+            if err != null {
+              sv = ""
+            }
+            sv_lower = downcase(sv)
+            mapped, err_m = get({
               "debug": 1,
               "info": 3,
               "notice": 4,
@@ -172,7 +217,22 @@ transforms:
               "critical": 8,
               "alert": 9,
               "emergency": 10
-            }, [severity_value]) ?? to_int(.severity) ?? 0
+            }, [sv_lower])
+            if err_m != null {
+              mapped = null
+            }
+            if mapped != null {
+              .severity = mapped
+            } else {
+              tmp, err2 = to_int(sv)
+              if err2 == null {
+                .severity = tmp
+              } else {
+                .severity = 0
+              }
+            }
+          } else {
+            .severity = 0
           }
         }
     
@@ -187,11 +247,23 @@ transforms:
     source: |
         # Normalize severity to numeric value
         if exists(.severity) {
-          if .severity == null {
-            .severity = 0  # Default for null values
-          } else {
-            severity_value = to_string(.severity) ?? "unknown"
-            .severity = get({
+          # null -> default 0
+          if is_null(.severity) {
+            .severity = 0
+          } else if is_integer(.severity) || is_float(.severity) {
+            # already numeric - keep as integer (infallible assignment)
+            .severity, err = to_int(.severity)
+            if err != null {
+              .severity = 0
+            }
+          } else if is_string(.severity) {
+            # handle textual severities (case-insensitive) or numeric-as-string
+            sv, err = to_string(.severity)
+            if err != null {
+              sv = ""
+            }
+            sv_lower = downcase(sv)
+            mapped, err_m = get({
               "debug": 1,
               "info": 3,
               "notice": 4,
@@ -200,7 +272,22 @@ transforms:
               "critical": 8,
               "alert": 9,
               "emergency": 10
-            }, [severity_value]) ?? to_int(.severity) ?? 0
+            }, [sv_lower])
+            if err_m != null {
+              mapped = null
+            }
+            if mapped != null {
+              .severity = mapped
+            } else {
+              tmp, err2 = to_int(sv)
+              if err2 == null {
+                .severity = tmp
+              } else {
+                .severity = 0
+              }
+            }
+          } else {
+            .severity = 0
           }
         }
    
@@ -219,11 +306,23 @@ transforms:
         
         # Normalize severity to numeric value
         if exists(.severity) {
-          if .severity == null {
-            .severity = 0  # Default for null values
-          } else {
-            severity_value = to_string(.severity) ?? "unknown"
-            .severity = get({
+          # null -> default 0
+          if is_null(.severity) {
+            .severity = 0
+          } else if is_integer(.severity) || is_float(.severity) {
+            # already numeric - keep as integer (infallible assignment)
+            .severity, err = to_int(.severity)
+            if err != null {
+              .severity = 0
+            }
+          } else if is_string(.severity) {
+            # handle textual severities (case-insensitive) or numeric-as-string
+            sv, err = to_string(.severity)
+            if err != null {
+              sv = ""
+            }
+            sv_lower = downcase(sv)
+            mapped, err_m = get({
               "debug": 1,
               "info": 3,
               "notice": 4,
@@ -232,7 +331,22 @@ transforms:
               "critical": 8,
               "alert": 9,
               "emergency": 10
-            }, [severity_value]) ?? to_int(.severity) ?? 0
+            }, [sv_lower])
+            if err_m != null {
+              mapped = null
+            }
+            if mapped != null {
+              .severity = mapped
+            } else {
+              tmp, err2 = to_int(sv)
+              if err2 == null {
+                .severity = tmp
+              } else {
+                .severity = 0
+              }
+            }
+          } else {
+            .severity = 0
           }
         }
         
@@ -247,11 +361,23 @@ transforms:
     source: |
         # Normalize severity to numeric value
         if exists(.severity) {
-          if .severity == null {
-            .severity = 0  # Default for null values
-          } else {
-            severity_value = to_string(.severity) ?? "unknown"
-            .severity = get({
+          # null -> default 0
+          if is_null(.severity) {
+            .severity = 0
+          } else if is_integer(.severity) || is_float(.severity) {
+            # already numeric - keep as integer (infallible assignment)
+            .severity, err = to_int(.severity)
+            if err != null {
+              .severity = 0
+            }
+          } else if is_string(.severity) {
+            # handle textual severities (case-insensitive) or numeric-as-string
+            sv, err = to_string(.severity)
+            if err != null {
+              sv = ""
+            }
+            sv_lower = downcase(sv)
+            mapped, err_m = get({
               "debug": 1,
               "info": 3,
               "notice": 4,
@@ -260,7 +386,22 @@ transforms:
               "critical": 8,
               "alert": 9,
               "emergency": 10
-            }, [severity_value]) ?? to_int(.severity) ?? 0
+            }, [sv_lower])
+            if err_m != null {
+              mapped = null
+            }
+            if mapped != null {
+              .severity = mapped
+            } else {
+              tmp, err2 = to_int(sv)
+              if err2 == null {
+                .severity = tmp
+              } else {
+                .severity = 0
+              }
+            }
+          } else {
+            .severity = 0
           }
         }
         

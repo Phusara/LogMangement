@@ -205,10 +205,16 @@ export const useLogsStore = defineStore('logs', () => {
 
         const sourceIp = item.src_ip ?? item.ip ?? 'N/A'
 
-        // Handle severity - can be number 
+        // Handle severity - normalize to numeric (fallback 0)
         let severity = 0
         if (item.severity !== null && item.severity !== undefined) {
-          severity = typeof item.severity === 'number'
+          if (typeof item.severity === 'number') {
+            severity = item.severity
+          } else {
+            // try to coerce string-like severities ("8" -> 8)
+            const parsed = Number(item.severity)
+            severity = Number.isFinite(parsed) ? parsed : 0
+          }
         }
 
         return {
